@@ -21,16 +21,16 @@ let Calculate_Qjks (Vector: [d]f32) (random_number: f32) (i: i32.64) : [d]f32 =
                     else if i+1 == k+1 then rotation_ks[1]
                     else Vector[k] 
                 ) inds
+    -- !!I am using map here instead of just changing the array at the k index directly. Is this the best method ? !!
 
 -- Calls Calculate_Qjks as shown in equation 7 from the paper. ↓
 let Calculate_Qj (Vector: [d]f32) (random_numbers: [d]f32) : [d]f32 =
     -- Use scan to do the composition of the "Q_{j,k}"s? This looks wrong... (Vector is given to Calculate_Qjks)
     scan (\i -> 
-            Calculate_Qjks Vector random_numbers[i] i) map i32.64 (iota d-1)    
+            Calculate_Qjks Vector random_numbers[i] i) 0 (iota d-1)    
 
 
 module c32 = mk_complex f32
--- 
 let Calculate_Zinverse (Z: [d2]c32) : [d]f32 =
     map (\i ->
             if i%2 then Z[i/2].im
@@ -60,15 +60,29 @@ let Calculate_Fd (Vector: [d]f32) : [d]f32 =
     -- If d was odd
     if (!(d%2)) then Fd :: Vector[d-1]
     in Fd
+
+let Calculate_theta (Vector : [d]f32) (pseudorandom_numbers : [d]f32) (m2: i32) (m1:i32) : [d]f32 = 
+    -- !! I dont know how function composition should work with scan !! --
+    let PQm2 = scan (\i -> 
+                        Calculate_Qj (Calculate_Pj Vector) pseudorandom_numbers[m1 + i]) 0 (iota m2) 
+    let FdPQm2 = Calculate_Fd PQm2
+    in scan (\i -> 
+                    Calculate_Qj (Calculate_Pj Vector) pseudorandom_numbers[i]) 0 (iota m1) 
     
+
 --------------------------------------------------
 --------------------------------------------------
 
-let Main() =
+let Main (points : [N][d]f32) =
     -- construct (d−1)·n independent pseudorandom numbers for Calculate_Qj
-    let n     = m1 + m2 
-    let seed_amount = (d-1) * n
+    let m1 = (log d) / 2
+    let m2 = (log d) / 2
+    let seed_amount = (d-1) * m1 + m2
     let rng                  = Make an "rng_engine" with min=0 and max=2π
     let rng_seeds            = rng.split(seed_amount)
     let (rng_states, pseudorandom_numbers) =  map (\x -> x.rand) rng_seeds
     -- Use some fancy slicing maybe for the "pseudorandom_numbers"
+    let theta = iota d
+    map (\point ->
+            Calculate_theta point pseudorandom_numbers m2 m1
+            ) points
