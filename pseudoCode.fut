@@ -5,8 +5,8 @@ let Calculate_Pj(Vector: [d]f32) : [d]f32 =
     -- https://futhark-lang.org/pkgs/github.com/diku-dk/cpprandom/1.3.1/doc/lib/github.com/diku-dk/cpprandom/shuffle.html
 
     let rng                 = Make an "rng_engine" with min=0 and max=d-1
-    let shuffler            = Make a "shuffle"
-    let (rng_state, shuffled_array) = shuffler.shuffle(Vector)
+    let shuffler            = Make a "shuffle"x 
+    let (rng_state, shuffled_array) = shuffler.shuffle (rng.seed) (Vector)
     in shuffled_array
 
 -- Does the planar rotation as exlpained in equation 6 in the paper.
@@ -35,8 +35,8 @@ let Calculate_Qj (Vector: [d]f32) (random_numbers: [d]f32) : [d]f32 =
 module c32 = mk_complex f32
 let Calculate_Zinverse (Z: [d2]c32) : [d]f32 =
     map (\i ->
-            if i%2 then Z[i/2].re
-                    else Z[i/2].im
+            if i%2 == 0 then Z[i/2].re
+                        else Z[i/2].im
             ) iota (2*d2)
 
 -- Calculate F^(d) 
@@ -49,11 +49,11 @@ let Calculate_Fd (Vector: [d]f32) : [d]f32 =
     -- Construct T
     let T = map(\k -> 
                     map(l -> 
-                        (1.0f / sqrt(d2))*                                      -- <-- Maybe this should be complex too? (With no imaginary part)
+                        c32.mk_re (1.0f / sqrt(d2)) c32.*                                     -- <-- Maybe this should be complex too? (With no imaginary part)
                         (c32.exp(  (c32.mk (0) (-(2*pi*(k-1)*(l-1))/d2)  ))) 
                         ) d2index ) d2index
     -- Now we can calculate eq. 10 ↓
-    let T' = T * Z
+    let T' = T * Z -- matix vector mul
     let Fd = Calculate_Zinverse T'
     -- If d was odd
     if (!(d%2)) then Fd :: Vector[d-1]
