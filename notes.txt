@@ -1,13 +1,24 @@
 Pseudorandom Orthogonal Transformations:
 
 P:  is a linear operator that takes a vector and permutes its coordinates
+        Find out hopw you use the rng_engine
+        Try sequentially
+        Try parallel with split
+
 Q:  is a linear operator that takes a vector and rotates the coordinates
+        When applying eq 7 do it sequentially with a loop (maybe nontrivial?)
+        Also do the rotations inplace instead of using map
+        Normalize the rng_engines output numbers: (rand.ToFloat/(u32.highest number).ToFloat) Then scale with 2pi
+
 Fd: a linear operator that takes a vector uses a one to one operator to 
         transform the vector from R^d to C^(d/2) multiplies this with a 
         Fourier transform matrix and then converts the vector back to R^d 
+                Play around with complex numbers
+                Create a matrix-vector multiplcation that works with complex numbers
 
 Theta: takes a vector and runs it through P and Q a 'm2' times then through
         Fd and then again through P and Q m1 times
+                Theta is a function that should permute all points similarly for an iteration of T
 
     
 
