@@ -11,3 +11,4 @@
 *.actual
 *.expected
 *.DS_Store
+!Makefile
