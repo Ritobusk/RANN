@@ -1,0 +1,13 @@
+# Ignore all
+*
+
+# Unignore all with extensions
+!*.*
+
+# Unignore all dirs
+!*/
+
+*.c
+*.actual
+*.expected
+*.DS_Store
