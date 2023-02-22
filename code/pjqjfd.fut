@@ -6,13 +6,13 @@ import "lib/github.com/diku-dk/complex/complex"
 local module real = { open f64 }
 local module rng_engine = pcg32
 local module shuffle = mk_shuffle rng_engine
-module c64 = mk_complex f32
+module c32 = mk_complex f32
 
 -- Permutation function
 let calculate_Pj [d] (point: [d]f32) (permutation : [d]i64) : [d]f32 = 
     map (\i -> point[i]) permutation
 
-
+-- Rotation functions
 let call_Qjk [d] [d1] (point: [d]f32) (rand_numbers: [d1]f32) (i : i64) : [d]f32 =
     let Qjk = map (\k ->
                     if      i == k then ((f32.cos rand_numbers[i]) * point[i]  + (f32.sin rand_numbers[i]) * point[i+1])
@@ -25,17 +25,31 @@ let calculate_Qj [d] [d1] (point: [d]f32) (rand_numbers: [d1]f32) : [d]f32 =
     loop acc = call_Qjk point rand_numbers 0 for i < d1 -1  do
         call_Qjk acc rand_numbers (i+1)
 
+-- Fourier transform functions
+let mat_vec_complex [d2] (mat : [d2][d2](f32,f32)) (vec : [d2](f32,f32))  =
+    map (\row -> reduce (c32.+) (c32.mk 0.0 0.0) <| map2 (\m v -> m c32.* v) row vec ) mat
+
 let Z [d] (point: [d]f32) (d2 : i64) : [d2](f32,f32)  =
-    map (\i -> c64.mk (point[i*2]) (point[(i*2) + 1])) (iota d2)
+    map (\i -> c32.mk (point[i*2]) (point[(i*2) + 1])) (iota d2)
 
 let Z_inv [d2] (point: [d2](f32,f32)) : []f32 =
-    map (\i -> if i%2 == 0  then c64.re point[i/2]
-                            else c64.im point[i/2] ) (iota (2*d2))
+    map (\i -> if i%2 == 0  then c32.re point[i/2]
+                            else c32.im point[i/2] ) (iota (2*d2))
 
 let Fd [d] (point: [d]f32)  =
     let d2 = d / 2
-    let bim = Z point d2
-    in Z_inv bim
+    let pZ = Z point d2
+    let one_over_d2sqr = c32.mk_re (1.0 / ( (f32.sqrt (f32.i64 d2)))) 
+    let T = map (\k ->  
+                    map (\l ->
+                        let exponent_im = c32.exp (c32.mk_im 
+                                (-(2.0 * f32.pi * (f32.i64 k) * (f32.i64 l)) / (f32.i64 d2)))
+                        in one_over_d2sqr c32.* exponent_im
+                        ) (iota d2)  
+                ) (iota d2)
+    let pTZ = mat_vec_complex T pZ
+
+    in Z_inv pTZ
 
 
 let main [n][d]
