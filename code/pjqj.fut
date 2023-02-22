@@ -11,6 +11,7 @@ let calculate_Pj [d] (point: [d]f32) (permutation : [d]i64) : [d]f32 =
 
 
 
+---- FAILED Q ATTEMPTS ----
 ---- I do not think inplace updates will work... ----
 let modify_Qjk [d]  (point: *[d]f32) (rand_number: f32) (k : i32) : *[d]f32 =
     let a =  (f32.cos rand_number) * point[k]  + (f32.sin rand_number) * point[k+1]
@@ -23,7 +24,6 @@ let modify_Qjk1 [d] (point: *[d]f32) (rand_number: f32) (k : i32) : *[d]f32 =
 
 
 
----- FAILED Q ATTEMPTS ----
 
 
 let calculate_Qj_tmp [d] [d1] (point: [d]f32) (rand_numbers: [d1]f32) : [d]f32 =
