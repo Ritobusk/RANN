@@ -32,12 +32,14 @@ let mat_vec_complex [d2] (mat : [d2][d2](f32,f32)) (vec : [d2](f32,f32))  =
 let Z [d] (point: [d]f32) (d2 : i64) : [d2](f32,f32)  =
     map (\i -> c32.mk (point[i*2]) (point[(i*2) + 1])) (iota d2)
 
-let Z_inv [d2] (point: [d2](f32,f32)) (d : i64) : []f32 =
-    map (\i -> if i%2 == 0  then c32.re point[i/2]
-                            else c32.im point[i/2] ) (iota (d))
+let Z_inv [d2] [d] (TZ: [d2](f32,f32))  (point : [d]f32) : [d]f32 =
+    map (\i ->  if i%2==0 && i == d-1 then point[d-1]
+                else if i%2 == 0  then c32.re TZ[i/2]
+                else c32.im TZ[i/2] 
+               
+        ) (iota (d))
 
-let Fd [d] (point: [d]f32) : [d]f32  =
-    let d2 = d / 2
+let Fd [d] (point: [d]f32) (d2 : i64) : [d]f32  =
     let pZ = Z point d2
     let one_over_d2sqr = c32.mk_re (1.0 / ( (f32.sqrt (f32.i64 d2)))) 
     let T = map (\k ->  
@@ -48,13 +50,7 @@ let Fd [d] (point: [d]f32) : [d]f32  =
                         ) (iota d2)  
                 ) (iota d2)
     let pTZ = mat_vec_complex T pZ
-    in Z_inv pTZ d
-
-let Fd_final [d] (F : [d]f32) (point : [d]f32) : [d]f32 =
-    if length F != length point then 
-        map (\i -> if i == d-1 then point[d-1]
-                                else F[i]) (iota d)
-    else F
+    in Z_inv pTZ point
 
 let Theta [d] (point :  [d]f32) (permutations : [][]i64) (random_numbers : []f32) (m1 : i64) (m2 : i64) =
     let m2_PQ = loop acc = point for i < m2 do
@@ -62,9 +58,9 @@ let Theta [d] (point :  [d]f32) (permutations : [][]i64) (random_numbers : []f32
                     let ind_1 = i * (d-1)
                     let ind_2 = (i+1)*(d-1) 
                     in calculate_Qj pointP random_numbers[ind_1:ind_2:1]
-    let Fd_m2_PQ = Fd m2_PQ
-    let Fd_final_val = Fd_final Fd_m2_PQ m2_PQ
-    in loop acc = Fd_final_val for i < m1 do
+    let d2 = d / 2
+    let Fd_m2_PQ = Fd m2_PQ d2
+    in loop acc = Fd_m2_PQ for i < m1 do
         let pointP = calculate_Pj acc permutations[i + m2]
         let ind_1 = (i * (d-1)) + m2 * (d-1)
         let ind_2 = (i+1) * (d-1) + m2 * (d-1)
@@ -98,6 +94,6 @@ let Theta [d] (point :  [d]f32) (permutations : [][]i64) (random_numbers : []f32
     --let points_Fd =  Fd [1.0f32, 2.0f32, 3.0f32, 4.0f32] 
 
 
-    in Theta points'[0]  permutations_P rand_numbers_Q_normalized2pi M1 M2
+    in map (\p ->  Theta p  permutations_P rand_numbers_Q_normalized2pi M1 M2) points'
 -- [[-0.924159f32, -1.109819f32, 0.607398f32, -3.863729f32], [-4.771064f32, -1.707392f32, -0.522218f32, -7.393312f32]]
     --3.104016f32, 4.048981f32, 3.253206f32,
