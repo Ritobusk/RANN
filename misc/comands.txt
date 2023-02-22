@@ -3,3 +3,5 @@
 
  futhark pkg add github.com/diku-dk/complex // To add some package
  futhark pkg sync                           // To sync the package
+ 
+ cat data.in | ./pjqj
