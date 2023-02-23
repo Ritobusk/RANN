@@ -74,7 +74,18 @@ let calculate_Qj [d] [d1] (point: [d]f32) (rand_numbers: [d1]f32) : [d]f32 =
     loop acc = call_Qjk point rand_numbers 0 for i < d1 -1  do
         call_Qjk acc rand_numbers (i+1)
 
-    
+let calculate_Qjscanmap [d] [d1] (point: [d]f32) (rand_numbers: [d1]f32) : [d]f32 =
+    let index    = iota d1
+    let acc_vals = scan (\acc i -> 
+                let i = i64.f32 i
+                in ((-f32.sin rand_numbers[i]) * acc + (f32.cos rand_numbers[i]) * point[i+1] )
+                )point[0] (map (f32.i64) index)
+    let bim = map (\k ->
+            if k == 0          then ((f32.cos rand_numbers[k]) * point[0]  + (f32.sin rand_numbers[k]) * point[k+1])
+            else if k == (d-1) then acc_vals[k-1]
+            else ((f32.cos rand_numbers[k]) * acc_vals[k-1]  + (f32.sin rand_numbers[k]) * point[k+1] )
+        ) (iota d)
+    in bim
 
 let main [n][d]
          (points : [n][d]f32)  =
@@ -98,7 +109,8 @@ let main [n][d]
 
     let (rngs_P, permutations_P) = unzip <| map (\r -> shuffle.shuffle r (iota d)) rngs_M1M2
     let points_Pj = map (\vec -> calculate_Pj vec permutations_P[0]) points' 
-    let points_Qj = map (\vec -> calculate_Qj vec rand_numbers_Q_normalized2pi[0:d-1:1] ) points'
+    let points_Qj = map (\vec -> calculate_Qjscanmap vec rand_numbers_Q_normalized2pi[0:d-1:1] ) points'
+    let points_Qj2 =  map (\vec -> calculate_Qj vec rand_numbers_Q_normalized2pi[0:d-1:1] ) points'
     in points_Qj
 -- [[-0.924159f32, -1.109819f32, 0.607398f32, -3.863729f32], [-4.771064f32, -1.707392f32, -0.522218f32, -7.393312f32]]
     --3.104016f32, 4.048981f32, 3.253206f32,

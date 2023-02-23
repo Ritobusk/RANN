@@ -25,6 +25,19 @@ let calculate_Qj [d] [d1] (point: [d]f32) (rand_numbers: [d1]f32) : [d]f32 =
     loop acc = call_Qjk point rand_numbers 0 for i < d1 -1  do
         call_Qjk acc rand_numbers (i+1)
 
+-- Calculate Qj with 1 scan and 1 map instead of d^2 maps!!
+let calculate_Qjscanmap [d] [d1] (point: [d]f32) (rand_numbers: [d1]f32) : [d]f32 =
+    let index    = iota d1
+    let acc_vals = scan (\acc i -> 
+                let i = i64.f32 i
+                in ((-f32.sin rand_numbers[i]) * acc + (f32.cos rand_numbers[i]) * point[i+1] )
+                )point[0] (map (f32.i64) index)
+    in map (\k ->
+            if k == 0          then ((f32.cos rand_numbers[k]) * point[0]  + (f32.sin rand_numbers[k]) * point[k+1])
+            else if k == (d-1) then acc_vals[k-1]
+            else ((f32.cos rand_numbers[k]) * acc_vals[k-1]  + (f32.sin rand_numbers[k]) * point[k+1] )
+        ) (iota d)
+    
 -- Fourier transform functions
 let mat_vec_complex [d2] (mat : [d2][d2](f32,f32)) (vec : [d2](f32,f32))  =
     map (\row -> reduce (c32.+) (c32.mk 0.0 0.0) <| map2 (\m v -> m c32.* v) row vec ) mat
@@ -57,14 +70,14 @@ let Theta [d] (point :  [d]f32) (permutations : [][]i64) (random_numbers : []f32
                     let pointP = calculate_Pj acc permutations[i]
                     let ind_1 = i * (d-1)
                     let ind_2 = (i+1)*(d-1) 
-                    in calculate_Qj pointP random_numbers[ind_1:ind_2:1]
+                    in calculate_Qjscanmap pointP random_numbers[ind_1:ind_2:1]
     let d2 = d / 2
     let Fd_m2_PQ = Fd m2_PQ d2
     in loop acc = Fd_m2_PQ for i < m1 do
         let pointP = calculate_Pj acc permutations[i + m2]
         let ind_1 = (i * (d-1)) + m2 * (d-1)
         let ind_2 = (i+1) * (d-1) + m2 * (d-1)
-        in calculate_Qj pointP random_numbers[ind_1:ind_2:1]
+        in calculate_Qjscanmap pointP random_numbers[ind_1:ind_2:1]
 
 
    let main [n][d] (Tval: i64) (points : [n][d]f32) : [][n][d]f32 =
