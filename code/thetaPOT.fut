@@ -9,7 +9,7 @@ local module shuffle = mk_shuffle rng_engine
 module c32 = mk_complex f32
 
 -- Permutation function
-let calculate_Pj [d] (point: [d]f32) (permutation : [d]i64) : [d]f32 = 
+let calculate_Pj [d] (point: [d]f32) (permutation : [d]i64) : *[d]f32 = 
     map (\i -> point[i]) permutation
 
 -- Rotation functions
@@ -21,9 +21,17 @@ let call_Qjk [d] [d1] (point: [d]f32) (rand_numbers: [d1]f32) (i : i64) : [d]f32
                 ) (iota d)
     in Qjk
  
-let calculate_Qj [d] [d1] (point: [d]f32) (rand_numbers: [d1]f32) : [d]f32 =
-    loop acc = call_Qjk point rand_numbers 0 for i < d1 -1  do
-        call_Qjk acc rand_numbers (i+1)
+--let calculate_Qj [d] [d1] (point: [d]f32) (rand_numbers: [d1]f32) : [d]f32 =
+--    loop acc = call_Qjk point rand_numbers 0 for i < d1 -1  do
+--        call_Qjk acc rand_numbers (i+1)
+
+-- Later on, try to see if you can parallelize this, e.g., scan with 2x2 matmul.
+let calculate_Qj [d] [d1] (point: *[d]f32) (rand_numbers: [d1]f32) : *[d]f32 =
+    loop acc = point for i < d1  do
+        let acc[i]   = ((f32.cos rand_numbers[i]) * acc[i]  + (f32.sin rand_numbers[i]) * acc[i+1])
+        let acc[i+1] = ((-f32.sin rand_numbers[i]) * acc[i] + (f32.cos rand_numbers[i]) * acc[i+1])
+        in  acc
+        -- call_Qjk acc rand_numbers (i+1)
 
 -- Calculate Qj with 1 scan and 1 map instead of d^2 maps!!
 let calculate_Qjscanmap [d] [d1] (point: [d]f32) (rand_numbers: [d1]f32) : [d]f32 =
@@ -69,15 +77,17 @@ let Theta [d] (point :  [d]f32) (permutations : [][]i64) (random_numbers : []f32
     let m2_PQ = loop acc = point for i < m2 do
                     let pointP = calculate_Pj acc permutations[i]
                     let ind_1 = i * (d-1)
-                    let ind_2 = (i+1)*(d-1) 
-                    in calculate_Qjscanmap pointP random_numbers[ind_1:ind_2:1]
+                    let ind_2 = (i+1)*(d-1)
+                    in  calculate_Qj pointP random_numbers[ind_1:ind_2]
+                    --in calculate_Qjscanmap pointP random_numbers[ind_1:ind_2:1]
     let d2 = d / 2
     let Fd_m2_PQ = Fd m2_PQ d2
     in loop acc = Fd_m2_PQ for i < m1 do
         let pointP = calculate_Pj acc permutations[i + m2]
         let ind_1 = (i * (d-1)) + m2 * (d-1)
         let ind_2 = (i+1) * (d-1) + m2 * (d-1)
-        in calculate_Qjscanmap pointP random_numbers[ind_1:ind_2:1]
+        in  calculate_Qj pointP random_numbers[ind_1:ind_2]
+        -- in calculate_Qjscanmap pointP random_numbers[ind_1:ind_2:1]
 
 
    let main [n][d] (Tval: i64) (points : [n][d]f32) : [][n][d]f32 =
