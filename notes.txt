@@ -19,6 +19,19 @@ Fd: a linear operator that takes a vector uses a one to one operator to
 Theta: takes a vector and runs it through P and Q a 'm2' times then through
         Fd and then again through P and Q m1 times
                 Theta is a function that should permute all points similarly for an iteration of T
+            loop acc = Fd_m2_PQ for i < m1 -1 do
+                    let pointP = calculate_Pj acc permutations[i+m2]
+                    let ind_1 = m2 * i * (d-1)
+                    let ind_2 = m2 * (i+1)*(d-1) 
+                    in calculate_Qj pointP random_numbers[ind_1:ind_2:1]
+
+let Fd_final [d] (F : []f32) (point : [d]f32) (F2 : [d]f32) : [d]f32 =
+    if length F != length point then 
+        map (\i -> if i == d-1 then point[d-1]
+                                else F[i]) (iota d)
+    else if length F == d then F2
+    else point
+
 
     
 
