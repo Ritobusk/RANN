@@ -23,7 +23,8 @@ Theta: takes a vector and runs it through P and Q a 'm2' times then through
     
 
 
+CENTER OF MASS OF THE COLLECTION?:
+        https://www.khanacademy.org/science/physics/linear-momentum/center-of-mass/v/center-of-mass-equation
+        Just add all the points and then divide the resulting vector with the number of points???
+
     
-    --let Z = iota d2
-    --for (i32 i = 0; i < (d2 * 2); i+=2) do
-    --    Z[i] = complex(Vector[i], Vector[i+1])
