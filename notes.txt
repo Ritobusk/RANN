@@ -36,7 +36,8 @@ let Fd_final [d] (F : []f32) (point : [d]f32) (F2 : [d]f32) : [d]f32 =
     
 
 
+CENTER OF MASS OF THE COLLECTION?:
+        https://www.khanacademy.org/science/physics/linear-momentum/center-of-mass/v/center-of-mass-equation
+        Just add all the points and then divide the resulting vector with the number of points???
+
     
-    --let Z = iota d2
-    --for (i32 i = 0; i < (d2 * 2); i+=2) do
-    --    Z[i] = complex(Vector[i], Vector[i+1])
