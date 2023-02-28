@@ -75,22 +75,22 @@ let Fd [d] (point: [d]f32) (d2 : i64) : [d]f32  =
 
 let Theta [d] (point :  [d]f32) (permutations : [][]i64) (random_numbers : []f32) (m1 : i64) (m2 : i64) =
     let m2_PQ = loop acc = point for i < m2 do
-                    let pointP = calculate_Pj acc permutations[i]
-                    let ind_1 = i * (d-1)
-                    let ind_2 = (i+1)*(d-1)
-                    in  calculate_Qj pointP random_numbers[ind_1:ind_2]
+            let pointP = calculate_Pj acc permutations[i]
+            let ind_1 = i * (d-1)
+            let ind_2 = (i+1)*(d-1)
+            in  calculate_Qj pointP random_numbers[ind_1:ind_2]
                     --in calculate_Qjscanmap pointP random_numbers[ind_1:ind_2:1]
     let d2 = d / 2
     let Fd_m2_PQ = Fd m2_PQ d2
     in loop acc = Fd_m2_PQ for i < m1 do
-        let pointP = calculate_Pj acc permutations[i + m2]
-        let ind_1 = (i * (d-1)) + m2 * (d-1)
-        let ind_2 = (i+1) * (d-1) + m2 * (d-1)
-        in  calculate_Qj pointP random_numbers[ind_1:ind_2]
+            let pointP = calculate_Pj acc permutations[i + m2]
+            let ind_1 = (i * (d-1)) + m2 * (d-1)
+            let ind_2 = (i+1) * (d-1) + m2 * (d-1)
+            in  calculate_Qj pointP random_numbers[ind_1:ind_2]
         -- in calculate_Qjscanmap pointP random_numbers[ind_1:ind_2:1]
 
 
-   let main [n][d] (Tval: i64) (points : [n][d]f32) : [][n][d]f32 =
+let main [n][d] (Tval: i64) (points : [n][d]f32) : [][n][d]f32 =
         map (\t ->
             let t = i32.i64 t
             let M1 =  d / 2
