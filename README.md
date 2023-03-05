@@ -16,3 +16,7 @@ Get access to A100. NEED HELP...
 Plan out the K-D trees section of the algorithm  
 Start on related work  
 Extra: describe the work/span of code from week 2.  
+  
+WEEK 4  
+Construct the k-d tree  
+call it-support for a100  

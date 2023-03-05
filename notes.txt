@@ -19,6 +19,19 @@ Fd: a linear operator that takes a vector uses a one to one operator to
 Theta: takes a vector and runs it through P and Q a 'm2' times then through
         Fd and then again through P and Q m1 times
                 Theta is a function that should permute all points similarly for an iteration of T
+            loop acc = Fd_m2_PQ for i < m1 -1 do
+                    let pointP = calculate_Pj acc permutations[i+m2]
+                    let ind_1 = m2 * i * (d-1)
+                    let ind_2 = m2 * (i+1)*(d-1) 
+                    in calculate_Qj pointP random_numbers[ind_1:ind_2:1]
+
+let Fd_final [d] (F : []f32) (point : [d]f32) (F2 : [d]f32) : [d]f32 =
+    if length F != length point then 
+        map (\i -> if i == d-1 then point[d-1]
+                                else F[i]) (iota d)
+    else if length F == d then F2
+    else point
+
 
     
 
@@ -26,6 +39,8 @@ Theta: takes a vector and runs it through P and Q a 'm2' times then through
 CENTER OF MASS OF THE COLLECTION?:
         https://www.khanacademy.org/science/physics/linear-momentum/center-of-mass/v/center-of-mass-equation
         Just add all the points and then divide the resulting vector with the number of points???
+        sum = reduce (\acc point -> map2 (+) acc point ) acc points
+        shiftedPoints = map (\i -> i / n) sum
 
 
 How to calculate L in eq 18:
@@ -33,20 +48,24 @@ How to calculate L in eq 18:
 
 Constructing tree:
         Pad the points such that each leaf has the same number of elements. 
-                (Only if there is an uneven number of points? 
-                        Since this algorithm takes vector of points?)
+        Since I want the leaves to have a fixed size of a power of 2 I have 
+                to pad accordingly.
 
+        Stopping condition is when leaves have the specified size.
 
         Find median of first coordinate/dim (or dim with highest spread and then find its 
-                median?) with quickselect? 
-                or sorting along dim with highest spread as in propagation assisted k-d trees?
+                median?) with sorting along dim with highest spread as in propagation assisted k-d trees?
                 Note: Maybe V_i necessitates that all nodes/leaves of the same level has to be
                         split along the same dim. 
         Split at the median
         Do this L times.
-                Do the leaves contain the index of its points or the points themselves?
+                Do the leaves contain the index of the points it contains or the points themselves?
         To be able to walk: need to save the dim the split happened and its median. Maybe also the
                 + and - symbols from eq 1
+
+Find initial leaf for each point
+        Save the path taken with a word of bits e.g. [1, 0, 0, 1]. This represents [+, -, -, +]
+                in the paper notation.
 
 
 Finding V_i...
@@ -55,7 +74,7 @@ Finding V_i...
                 B_siqma: you have the box they belong to and its array of +,- symbols.
                         found by traversing tree
                 traverse the tree and return the L leaves that have an array (+,-) that 
-                        differs at only 1 index from B_sigma.  
+                        differs at only 1 index from B_sigma's array.  
 
         output: (close to k points) * (L + 1) candidates.
 

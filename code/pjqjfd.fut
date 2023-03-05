@@ -75,7 +75,7 @@ let main [n][d]
     let (rngs_P, permutations_P) = unzip <| map (\r -> shuffle.shuffle r (iota d)) rngs_M1M2
     let points_Pj = map (\vec -> calculate_Pj vec permutations_P[0]) points' 
     let points_Qj = map (\vec -> calculate_Qj vec rand_numbers_Q_normalized2pi[0:d-1:1] ) points'
-    let points_Fd =  Fd [1.0f32, 2.0f32, 3.0f32, 4.0f32] 
+    let points_Fd =  map (\vec -> Fd vec) points  
 
 
     in points_Fd
