@@ -80,3 +80,7 @@ Finding V_i...
 
 Find actual K-nn of V_i
         Look at fig 3 in propagation assisted k-d trees 
+
+
+
+Medians: How should you handle when a column has a lot of values equal to the median? 

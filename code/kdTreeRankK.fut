@@ -74,17 +74,7 @@ local def findClosestMed [n] (cur_dim: i32) (median_dims: [n]i32) (node_ind: i32
 -- !NOT NEEDED        5. the closest ancestor node index that splits the same dimension (or -1 if none)!
 def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
                      (input: [m][d]f32) :
-           (*[m'][d]f32, *[m']i32, *[q]i32, *[q]f32, *[q]i32) =
-
---         let (lbs, ubs) = transpose input |> 
---                          map (\row -> ( reduce f32.min f32.highest row
---                                       , reduce f32.max f32.lowest  row) )
---                          |> unzip
-
-         let inputT = transpose input
-         let lbs = map (reduce_comm f32.min f32.highest) inputT |> opaque
-         let ubs = map (reduce_comm f32.max f32.lowest ) inputT |> opaque
-         let lubs = lbs ++ ubs
+           (*[m'][d]f32, *[m']i32, *[q]i32, *[q]f32) =
 
          let num_pads = m' - m
          let input' = input ++ (replicate num_pads (replicate d f32.inf)) :> [m'][d]f32
@@ -92,52 +82,35 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
          
          let median_vals = replicate q 0.0f32
          let median_dims = replicate q (-1i32)
-         let clanc_eqdim = replicate q (-1i32)
          let ( indir' : *[m']i32
              , median_dims': *[q]i32
              , median_vals': *[q]f32
-             , clanc_eqdim': *[q]i32
              ) =
            loop ( indir  : *[m']i32
                 , median_dims: *[q]i32
-                , median_vals: *[q]f32
-                , clanc_eqdim: *[q]i32 )
+                , median_vals: *[q]f32 )
              for lev < (height+1) do
                let nodes_this_lvl = 1 << i64.i32 lev
                let pts_per_node_at_lev = m' / nodes_this_lvl
                let indir2d = unflatten nodes_this_lvl pts_per_node_at_lev indir
 
-               ---! NOT NEEDED ---
-               -- compute the dimensions to be split for each node at this level
-               -- and also the index of the closest ancestor that has split the
-               -- same dimension
-               let (med_dims, anc_same_med) =
-                    map (\(i: i32) ->
-                            let node_ind = i + i32.i64 nodes_this_lvl - 1
-                            -- walk from root to node and update bounds
-                            let lubs_cur = updateBounds lev median_dims median_vals
-                                                        node_ind
-                                                        (copy lubs)
-                            -- chose dimension of highest spread
-                            let diffs = map (\i -> f32.abs(lubs_cur[i+i32.i64 d] - lubs_cur[i])) (iota32 d)
-                            let (cur_dim, _) = reduce_comm (\ (i1,v1) (i2,v2) -> 
-                                                                if v1 >= v2 then (i1, v1) 
-                                                                            else (i2, v2) )
-                                                           (-1, f32.lowest) <| zip (iota32 d) diffs
-                            let prev_anc = findClosestMed cur_dim median_dims node_ind
-                            in  (cur_dim, prev_anc)
-                        ) (iota32 nodes_this_lvl)
-                    |> unzip
-                    --|> intrinsics.opaque
+               -- dimensions to be split for each node at this level is equal to the level
+               let med_dims =  if lev >= (i32.i64 d) then replicate nodes_this_lvl (i32.i64 (d-1))
+                               else replicate nodes_this_lvl lev
                 
-                ---! END ---
-               -- sort the choosen dimension for each node
+               -- sort the chosen dimension for each node
                let chosen_columns = map2 (\indir_chunk dim ->
                                             map (\ind -> input'[ind, dim]
                                                 ) indir_chunk
                                          ) indir2d med_dims
 
                ---! USE rank-k-flat-opt --- 
+               let med_vals_rank = computeMedianWithRankK chosen_columns
+               -- Call rank-k to get med_vals
+               -- Somehow create indir2d'. I need to have the local indicies of sorting chosen_columns
+                --  where each node is split by the median. Then I can give these indicies to "let indir2d'"
+               -- DONE?
+               let initial_local_ind = replicate nodes_this_lvl (iota32 pts_per_node_at_lev) 
                let (sorted_dim_2d, sort_inds_2d) =
                     map2 zip chosen_columns (replicate nodes_this_lvl (iota32 pts_per_node_at_lev))
                     |> map (radix_sort_float_by_key (\(l,_) -> l) f32.num_bits f32.get_bit)
@@ -157,13 +130,12 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
                let this_lev_inds = map (+ (nodes_this_lvl-1)) (iota nodes_this_lvl)
                let median_dims' = scatter median_dims this_lev_inds med_dims
                let median_vals' = scatter median_vals this_lev_inds med_vals
-               let clanc_eqdim' = scatter clanc_eqdim this_lev_inds anc_same_med
                let indir'' = flatten indir2d' :> *[m']i32
 
-               in  (indir'', median_dims', median_vals', clanc_eqdim')
+               in  (indir'', median_dims', median_vals')
 
          let input'' = map (\ ind -> map (\k -> input'[ind, k]) (iota32 d) ) indir' :> *[m'][d]f32
-         in  (input'', indir', median_dims', median_vals', clanc_eqdim')
+         in  (input'', indir', median_dims', median_vals')
 
 
 def main0 (m: i32) (defppl: i32) =
@@ -171,7 +143,7 @@ def main0 (m: i32) (defppl: i32) =
 
 def main [m] [d] (defppl: i32) (input: [m][d]f32) =
     let (height, num_inner_nodes, _, m') = computeTreeShape (i32.i64 m) defppl
-    let (leafs, indir, median_dims, median_vals, clanc_eqdim) =
+    let (leafs, indir, median_dims, median_vals) =
         mkKDtree height (i64.i32 num_inner_nodes) (i64.i32 m') input
     let r = i64.i32 (m' / 64)
-    in  (leafs[:r], indir[:r], median_dims, median_vals, clanc_eqdim)
+    in  (leafs, indir, median_dims, median_vals)
