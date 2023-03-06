@@ -76,66 +76,77 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
                      (input: [m][d]f32) :
            (*[m'][d]f32, *[m']i32, *[q]i32, *[q]f32) =
 
-         let num_pads = m' - m
-         let input' = input ++ (replicate num_pads (replicate d f32.inf)) :> [m'][d]f32
-         let indir  = iota32 m'
-         
-         let median_vals = replicate q 0.0f32
-         let median_dims = replicate q (-1i32)
-         let ( indir' : *[m']i32
-             , median_dims': *[q]i32
-             , median_vals': *[q]f32
-             ) =
-           loop ( indir  : *[m']i32
+    let num_pads = m' - m
+    let input' = input ++ (replicate num_pads (replicate d f32.inf)) :> [m'][d]f32
+    let indir  = iota32 m'
+    
+    let median_vals = replicate q 0.0f32
+    let median_dims = replicate q (-1i32)
+    let ( indir' : *[m']i32
+        , median_dims': *[q]i32
+        , median_vals': *[q]f32
+        ) =
+        loop ( indir  : *[m']i32
                 , median_dims: *[q]i32
                 , median_vals: *[q]f32 )
-             for lev < (height+1) do
-               let nodes_this_lvl = 1 << i64.i32 lev
-               let pts_per_node_at_lev = m' / nodes_this_lvl
-               let indir2d = unflatten nodes_this_lvl pts_per_node_at_lev indir
+            for lev < (height+1) do
+            let nodes_this_lvl = 1 << i64.i32 lev
+            let pts_per_node_at_lev = m' / nodes_this_lvl
+            let indir2d = unflatten nodes_this_lvl pts_per_node_at_lev indir
 
-               -- dimensions to be split for each node at this level is equal to the level
-               let med_dims =  if lev >= (i32.i64 d) then replicate nodes_this_lvl (i32.i64 (d-1))
-                               else replicate nodes_this_lvl lev
+            -- dimensions to be split for each node at this level is equal to the level
+            let med_dims =  if lev >= (i32.i64 d) then replicate nodes_this_lvl (i32.i64 (d-1))
+                            else replicate nodes_this_lvl lev
                 
-               -- sort the chosen dimension for each node
-               let chosen_columns = map2 (\indir_chunk dim ->
+            -- sort the chosen dimension for each node
+            let chosen_columns = map2 (\indir_chunk dim ->
                                             map (\ind -> input'[ind, dim]
                                                 ) indir_chunk
-                                         ) indir2d med_dims
+                                        ) indir2d med_dims
 
-               ---! USE rank-k-flat-opt --- 
-               let med_vals_rank = computeMedianWithRankK chosen_columns
-               -- Call rank-k to get med_vals
-               -- Somehow create indir2d'. I need to have the local indicies of sorting chosen_columns
+            ---! USE rank-k-flat-opt --- 
+            let med_vals_rank = computeMedianWithRankK chosen_columns
+            -- Call rank-k to get med_vals
+            -- Somehow create indir2d'. I need to have the local indicies of sorting chosen_columns
                 --  where each node is split by the median. Then I can give these indicies to "let indir2d'"
-               -- DONE?
-               let initial_local_ind = replicate nodes_this_lvl (iota32 pts_per_node_at_lev) 
-               let (sorted_dim_2d, sort_inds_2d) =
-                    map2 zip chosen_columns (replicate nodes_this_lvl (iota32 pts_per_node_at_lev))
-                    |> map (radix_sort_float_by_key (\(l,_) -> l) f32.num_bits f32.get_bit)
-                    |> map unzip |> unzip
-               ---! END ---
-               ---! I NEED TO CREATE A NEW sort_inds_2d AFTER I HAVE THE MEDIANS ---
-               let med_vals = map  (\sorted_dim -> 
-                                        let mi = pts_per_node_at_lev/2
-                                        in (sorted_dim[mi] + sorted_dim[mi-1])/2
-                                   ) sorted_dim_2d
-               ---! I NEED TO CREATE A NEW sort_inds_2d ! ---
-               let indir2d' = map2(\ indir_chunk sort_inds ->
-                                        map (\ind -> indir_chunk[ind]) sort_inds
-                                  ) indir2d sort_inds_2d
+            -- DONE?
+            let initial_local_ind = replicate nodes_this_lvl (iota32 pts_per_node_at_lev) 
+            let split_at_median =  map3 (\vals inds median ->
+                                            let valind_pairs = zip vals inds
+                                            let (split_arr, _) = (partition3 (\(v,_) -> v < median) valind_pairs)
+                                            let ind_split_arr = map (\(_,i) -> i) split_arr
+                                            in ind_split_arr
+                                            -- (left_split, right_split) |> opaque
+                                            --in left_split_ind  = map (\(_,i) -> i) left_split
+                                            --let right_split_ind = map (\(_,i) -> i) right_split
+                                            --in left_split_ind ++ right_split_ind
+                
+                                        ) chosen_columns initial_local_ind med_vals_rank
+            --let indir2d'' = copy indir2d
             
-               -- scatter the values of this level in the global result arrays
-               let this_lev_inds = map (+ (nodes_this_lvl-1)) (iota nodes_this_lvl)
-               let median_dims' = scatter median_dims this_lev_inds med_dims
-               let median_vals' = scatter median_vals this_lev_inds med_vals
-               let indir'' = flatten indir2d' :> *[m']i32
 
-               in  (indir'', median_dims', median_vals')
+            --let (sorted_dim_2d, sort_inds_2d) =
+            --        map2 zip chosen_columns (replicate nodes_this_lvl (iota32 pts_per_node_at_lev))
+            --        |> map (radix_sort_float_by_key (\(l,_) -> l) f32.num_bits f32.get_bit)
+            --        |> map unzip |> unzip
+            --let med_vals = map  (\sorted_dim -> 
+            --                            let mi = pts_per_node_at_lev/2
+            --                            in (sorted_dim[mi] + sorted_dim[mi-1])/2
+            --                    ) sorted_dim_2d
+            let indir2d' = map2(\ indir_chunk sort_inds ->
+                                        map (\ind -> indir_chunk[ind]) sort_inds
+                                ) indir2d split_at_median --sort_inds_2d
+            
+            -- scatter the values of this level in the global result arrays
+            let this_lev_inds = map (+ (nodes_this_lvl-1)) (iota nodes_this_lvl)
+            let median_dims' = scatter median_dims this_lev_inds med_dims
+            let median_vals' = scatter median_vals this_lev_inds med_vals_rank
+            let indir'' = flatten indir2d' :> *[m']i32
 
-         let input'' = map (\ ind -> map (\k -> input'[ind, k]) (iota32 d) ) indir' :> *[m'][d]f32
-         in  (input'', indir', median_dims', median_vals')
+            in  (indir'', median_dims', median_vals')
+
+    let input'' = map (\ ind -> map (\k -> input'[ind, k]) (iota32 d) ) indir' :> *[m'][d]f32
+    in  (input'', indir', median_dims', median_vals')
 
 
 def main0 (m: i32) (defppl: i32) =

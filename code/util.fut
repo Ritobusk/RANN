@@ -73,6 +73,27 @@ def imap4 as bs cs ds f = map4 f as bs cs ds
 def ifilter as p = filter p as
 
 def ones [q] 't (_xs: [q]t) = replicate q 1i32
+
+def partition3 [ n ] 't -- Assume t = i32 , n = 6 ,
+              ( p : ( t -> bool )) -- p (x:i32 )= 0 == (x%2) ,
+              ( arr : [ n ] t ) : ([ n ]t , i64 ) = -- arr = [5 ,4 ,2 ,3 ,7 ,8]
+    let cs = map p arr 
+    let tfs = map (\ f -> if f then 1 else 0) cs
+    let isT = scan (+) 0 tfs
+    let i = isT[n-1] 
+    let ffs = map (\f -> if f then 0 else 1) cs 
+    let isF = map (+i) <| scan (+) 0 ffs 
+    let inds = map3 (\c iT iF -> if c then iT -1
+                                       else iF -1
+                    ) cs isT isF
+    let r = scatter (replicate n arr[0]) inds arr
+    in (r , i )
+
+
+def scatter_some_better 'a (dest: *[]a) (p: a -> bool) (pairs: [](i64, a)) =
+  let (is, vs) = unzip (map (\(i, v) -> if p v then (i,v) else (-1,v)) pairs)
+  in scatter dest is vs
+
 -- meds: hopefully a decent estimate of the median values for each partition
 -- ks:   the k-th smallest element to be searched for each partition (starting from 1)
 -- shp, II1, A:  the rep of the iregular array: shape, II1-helper (plus 1) and flat data
