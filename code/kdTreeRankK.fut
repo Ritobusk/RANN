@@ -31,34 +31,7 @@ def computeTreeShape (m: i32) (defppl: i32) : (i32, i32, i32, i32) =
          let ppl = (m + num_leaves - 1) / num_leaves
          in  (h, num_leaves-1, ppl, num_leaves*ppl)
 
-local def updateBounds [n] [d2] (level: i32) (median_dims: [n]i32) (median_vals: [n]f32)
-                     (node_ind: i32) (lubs_cur: *[d2]f32) : *[d2]f32=
-    let d = d2 / 2
-    let ancestor = 0
-    let (_, res) =
-      loop (ancestor,lubs_cur) for i < level do
-        let k = level - i - 1
-        let ancestor_child = compute_Kth_ancestor k node_ind
-        let anc_dim = median_dims[ancestor]
-        let lub_ind = if  (ancestor_child & 1) == 0
-                      then anc_dim
-                      else i32.i64 d+anc_dim
-                      -- if right node, then update lower bound
-        let anc_med = median_vals[ancestor]
-        let lubs_cur[lub_ind] = if !(f32.isinf anc_med) then anc_med else lubs_cur[lub_ind]
-        in  (ancestor_child, lubs_cur)
-    in  res
 
-local def findClosestMed [n] (cur_dim: i32) (median_dims: [n]i32) (node_ind: i32) : i32 =
-    let cur_node = node_ind
-    let res_ind  = -1i32
-    let (_, res) =
-        loop (cur_node, res_ind) 
-          while (cur_node != 0) && (res_ind == (-1i32)) do
-            let parent = getParent cur_node
-            let res_ind = if median_dims[parent] == cur_dim then parent else -1
-            in  (parent, res_ind)
-    in  res
 
 -- height: the height of the tree excluding leaves
 -- q: the number of internal tree nodes (i.e., without leaves)
@@ -104,35 +77,17 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
                                                 ) indir_chunk
                                         ) indir2d med_dims
 
-            ---! USE rank-k-flat-opt --- 
             let med_vals_rank = computeMedianWithRankK chosen_columns
-            -- Call rank-k to get med_vals
-            -- Somehow create indir2d'. I need to have the local indicies of sorting chosen_columns
-                --  where each node is split by the median. Then I can give these indicies to "let indir2d'"
-            -- DONE?
+            
             let initial_local_ind = replicate nodes_this_lvl (iota32 pts_per_node_at_lev) 
             let split_at_median =  map3 (\vals inds median ->
                                             let valind_pairs = zip vals inds
                                             let (split_arr, _) = (partition3 (\(v,_) -> v < median) valind_pairs)
                                             let ind_split_arr = map (\(_,i) -> i) split_arr
                                             in ind_split_arr
-                                            -- (left_split, right_split) |> opaque
-                                            --in left_split_ind  = map (\(_,i) -> i) left_split
-                                            --let right_split_ind = map (\(_,i) -> i) right_split
-                                            --in left_split_ind ++ right_split_ind
-                
                                         ) chosen_columns initial_local_ind med_vals_rank
-            --let indir2d'' = copy indir2d
             
 
-            --let (sorted_dim_2d, sort_inds_2d) =
-            --        map2 zip chosen_columns (replicate nodes_this_lvl (iota32 pts_per_node_at_lev))
-            --        |> map (radix_sort_float_by_key (\(l,_) -> l) f32.num_bits f32.get_bit)
-            --        |> map unzip |> unzip
-            --let med_vals = map  (\sorted_dim -> 
-            --                            let mi = pts_per_node_at_lev/2
-            --                            in (sorted_dim[mi] + sorted_dim[mi-1])/2
-            --                    ) sorted_dim_2d
             let indir2d' = map2(\ indir_chunk sort_inds ->
                                         map (\ind -> indir_chunk[ind]) sort_inds
                                 ) indir2d split_at_median --sort_inds_2d
@@ -157,4 +112,4 @@ def main [m] [d] (defppl: i32) (input: [m][d]f32) =
     let (leafs, indir, median_dims, median_vals) =
         mkKDtree height (i64.i32 num_inner_nodes) (i64.i32 m') input
     let r = i64.i32 (m' / 64)
-    in  (leafs, indir, median_dims, median_vals)
+    in  (leafs[:2], indir, median_dims, median_vals)

@@ -71,7 +71,7 @@ local def findClosestMed [n] (cur_dim: i32) (median_dims: [n]i32) (node_ind: i32
 --         2. the indirect array that holds the original indices of each point
 --         3. the index of the dimension that is split
 --         4. the median value of the split dimension
--- !NOT NEEDED        5. the closest ancestor node index that splits the same dimension (or -1 if none)!
+--         5. the closest ancestor node index that splits the same dimension (or -1 if none)!
 def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
                      (input: [m][d]f32) :
            (*[m'][d]f32, *[m']i32, *[q]i32, *[q]f32, *[q]i32) =
@@ -107,7 +107,6 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
                let pts_per_node_at_lev = m' / nodes_this_lvl
                let indir2d = unflatten nodes_this_lvl pts_per_node_at_lev indir
 
-               ---! NOT NEEDED ---
                -- compute the dimensions to be split for each node at this level
                -- and also the index of the closest ancestor that has split the
                -- same dimension
@@ -130,25 +129,20 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
                     |> unzip
                     --|> intrinsics.opaque
                 
-                ---! END ---
                -- sort the choosen dimension for each node
                let chosen_columns = map2 (\indir_chunk dim ->
                                             map (\ind -> input'[ind, dim]
                                                 ) indir_chunk
                                          ) indir2d med_dims
 
-               ---! USE rank-k-flat-opt --- 
                let (sorted_dim_2d, sort_inds_2d) =
                     map2 zip chosen_columns (replicate nodes_this_lvl (iota32 pts_per_node_at_lev))
                     |> map (radix_sort_float_by_key (\(l,_) -> l) f32.num_bits f32.get_bit)
                     |> map unzip |> unzip
-               ---! END ---
-               ---! I NEED TO CREATE A NEW sort_inds_2d AFTER I HAVE THE MEDIANS ---
                let med_vals = map  (\sorted_dim -> 
                                         let mi = pts_per_node_at_lev/2
                                         in (sorted_dim[mi] + sorted_dim[mi-1])/2
                                    ) sorted_dim_2d
-               ---! I NEED TO CREATE A NEW sort_inds_2d ! ---
                let indir2d' = map2(\ indir_chunk sort_inds ->
                                         map (\ind -> indir_chunk[ind]) sort_inds
                                   ) indir2d sort_inds_2d
