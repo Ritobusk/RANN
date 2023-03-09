@@ -90,10 +90,6 @@ def partition3 [ n ] 't -- Assume t = i32 , n = 6 ,
     in (r , i )
 
 
-def scatter_some_better 'a (dest: *[]a) (p: a -> bool) (pairs: [](i64, a)) =
-  let (is, vs) = unzip (map (\(i, v) -> if p v then (i,v) else (-1,v)) pairs)
-  in scatter dest is vs
-
 -- meds: hopefully a decent estimate of the median values for each partition
 -- ks:   the k-th smallest element to be searched for each partition (starting from 1)
 -- shp, II1, A:  the rep of the iregular array: shape, II1-helper (plus 1) and flat data

@@ -1,9 +1,3 @@
--- ==
--- entry: main
---
--- compiled input @ valid-data/kdtree-ppl-32-m-2097152.in
--- output @ valid-data/kdtree-ppl-32-m-2097152.out
-
 import "lib/github.com/diku-dk/sorts/radix_sort"
 import "util"
 
