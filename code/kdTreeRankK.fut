@@ -106,4 +106,4 @@ def main [m] [d] (defppl: i32) (input: [m][d]f32) =
     let (leafs, indir, median_dims, median_vals) =
         mkKDtree height (i64.i32 num_inner_nodes) (i64.i32 m') input
     let r = i64.i32 (m' / 64)
-    in  (leafs[:2], indir, median_dims, median_vals)
+    in  (leafs, indir, median_dims, median_vals)
