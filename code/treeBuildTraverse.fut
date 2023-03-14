@@ -34,5 +34,6 @@ let main [m] [d] (defppl: i32) (input: [m][d]f32) =
     --let qleafs = map (\l -> findLeaf median_dims median_vals height l) input
     let height1 = i64.i32 (height+1)
     let path_arrs = map (\l -> map (\p -> (l / (2**p)) % 2) (reverse (iota32 (height1)))) leaf_numbers
-    let V =  map2 (\pa lnum -> findAllPaths pa lnum ) path_arrs leaf_numbers
-    in  (leafs, indir, median_dims, median_vals, leaf_numbers , path_arrs, V)
+    let V =  zip leaf_numbers (map2 (\pa lnum -> (findAllPaths pa lnum) ) path_arrs leaf_numbers) 
+    let (lns, vis) = unzip V
+    in  (leafs, indir, median_dims, median_vals, leaf_numbers , path_arrs, vis)
