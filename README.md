@@ -20,3 +20,11 @@ Extra: describe the work/span of code from week 2.
 WEEK 4  
 Construct the k-d tree  
 call it-support for a100  
+
+WEEK 5&6  
+Make the functions for:  
+    finding the leaf a point naturally falls into and its path  
+    finding the paths that differ by 1.  
+    bruteforceing the found paths.  
+
+Ask troels to help with my installation issues for futhark 0.23/ look at it again myself  

@@ -65,5 +65,6 @@ Find actual K-nn of V_i
 
 
 Medians: How should you handle when a column has a lot of values equal to the median? 
-
+        A bug that could be solved when algorithm is almost finished.
+        
 Partition "3" from pmph used instead of native partition. 
