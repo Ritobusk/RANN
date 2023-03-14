@@ -1,4 +1,3 @@
-import "lib/github.com/diku-dk/sorts/radix_sort"
 import "util"
 
 def iota32 n = (0..1..<i32.i64 n) :> [n]i32
@@ -101,9 +100,9 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
 def main0 (m: i32) (defppl: i32) =
     computeTreeShape m defppl
 
-def main [m] [d] (defppl: i32) (input: [m][d]f32) =
+def main1 [m] [d] (defppl: i32) (input: [m][d]f32) =
     let (height, num_inner_nodes, _, m') = computeTreeShape (i32.i64 m) defppl
     let (leafs, indir, median_dims, median_vals) =
         mkKDtree height (i64.i32 num_inner_nodes) (i64.i32 m') input
-    let r = i64.i32 (m' / 64)
+    --let r = i64.i32 (m' / 64)
     in  (leafs[:2], indir, median_dims, median_vals)
