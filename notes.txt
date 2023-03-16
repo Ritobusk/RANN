@@ -70,6 +70,15 @@ Medians: How should you handle when a column has a lot of values equal to the me
 Partition "3" from pmph used instead of native partition. 
 
 
+IMPORTANT: The data that is used to build the tree is seperate from the queries you want to search!!
+                That is why you need a findNaturalLeaf function for the queries! 
+           I should create a new treeBuildTraverse that has this in mind!!
+           This makes it so it makes sense to sort the queries in relation to their leaf number!
+
+I should also modify the med_dims so that it goes like this e.g. [0,1,2,0,1] if d = 3 and height = 5
+instead of [0,1,2,2,2] like it is now.
+
+
 [[[[6.000000f32, 1.000000f32], [9.000000f32, 1.900000f32]], [[2.000000f32, 3.000000f32], [1.000000f32, 5.000000f32]]], 
 [[[4.000000f32, 2.000000f32], [8.000000f32, 2.000000f32]], [[3.000000f32, 1.000000f32], [1.000000f32, 2.000000f32]]], 
 [[[3.000000f32, 1.000000f32], [1.000000f32, 2.000000f32]], [[4.000000f32, 2.000000f32], [8.000000f32, 2.000000f32]]], 

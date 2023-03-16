@@ -1,6 +1,5 @@
 import "kdTreeRankK"
 
-
 def sumSqrsSeq [d] (xs: [d]f32) (ys: [d]f32) : f32 =
     loop (res) = (0.0f32) for (x,y) in (zip xs ys) do
         let z = x-y in res + z*z
@@ -69,7 +68,7 @@ let main [m] [d] (k: i64) (defppl: i32) (input: [m][d]f32) =
     let Vi_leafnum  = defppl64 * leafs_in_Vi 
     let path_arrs = map (\l -> map (\p -> (l / (2**p)) % 2) ((iota32 height1))) leaf_numbers
     
-    --- The leafs that have contact <= 1 for each leaf.
+    --- The leafs numbers that have contact <= 1 for each leaf.
     let Vis = map2 (\pa lnum -> let cont1 =(findAllPaths pa lnum)
                                   in [leaf_numbers[lnum]] ++ cont1 :> [leafs_in_Vi]i32) 
                       path_arrs[::defppl64] leaf_numbers[::defppl64]
@@ -85,6 +84,8 @@ let main [m] [d] (k: i64) (defppl: i32) (input: [m][d]f32) =
     let knns2 =  map3 (\query vi knn0 -> 
                         bruteForce query knn0 vi 
                     ) leafs Vi_for_queries init2_knns
-    
+
+    --- Now I need to scatter knns2 vals with the indir indicies 
+
     let (knn_inds, knn_dists) = unzip <| map (\knn_tup -> unzip knn_tup) knns2
     in  (leafs, indir, median_dims, median_vals, Vis, knn_inds, knn_dists)
