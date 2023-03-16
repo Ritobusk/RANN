@@ -58,9 +58,19 @@ let main [m] [d] (k: i64) (defppl: i32) (input: [m][d]f32) =
     let (height, num_inner_nodes, _, m') = computeTreeShape (i32.i64 m) defppl
     let m'64 = i64.i32 m'
     let defppl64 = i64.i32 defppl
-    let init2_knns = init_knns ++ (replicate (m'64 - m) (replicate k (-1i32, 0.0))) :> [m'64][k](i32, f32)
+    let init2_knns = init_knns ++ (replicate (m'64 - m) (replicate k (-1i32, f32.inf))) :> [m'64][k](i32, f32)
     let (leafs, indir, median_dims, median_vals) =
             mkKDtree height (i64.i32 num_inner_nodes) (m'64) input
+
+    -- 2. Find the leaf to which each query "naturally" belongs
+    --    If your set of querries is named `querries` this is
+    --    achieved with a map:
+    --      `let leaf_inds = map (findLeaf kdtree) querries`
+
+    -- 3. sort `(zip querries leaf_inds)` in increasing order of
+    --      their leaf_ind (second element)
+
+    -- 4. for each querry compute its knns from its own leaf
 
     --- The initial leaf and its path
     let leaf_numbers = map (\i -> i/defppl) (iota32 m'64) -- per point in leaf
@@ -69,6 +79,16 @@ let main [m] [d] (k: i64) (defppl: i32) (input: [m][d]f32) =
     let Vi_leafnum  = defppl64 * leafs_in_Vi 
     let path_arrs = map (\l -> map (\p -> (l / (2**p)) % 2) ((iota32 height1))) leaf_numbers
     
+
+    -- 5. have a loop which goes from [0 .. height - 1] which refines
+    --    the nearest neighbors
+    --
+    -- loop (curr_nn_set) = (init2_knns) for i < height do
+    --     let new_leaves = map (reverseBit i) leaf_numbers
+    --     let better_nn_set = map3 bruteForce querries curr_nn_set new_leaves 
+    --     in  better_nn_set
+    --
+
     --- The leafs that have contact <= 1 for each leaf.
     let Vis = map2 (\pa lnum -> let cont1 =(findAllPaths pa lnum)
                                   in [leaf_numbers[lnum]] ++ cont1 :> [leafs_in_Vi]i32) 
