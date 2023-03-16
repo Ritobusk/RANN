@@ -46,7 +46,6 @@ def findLeaf [q][d] (median_dims: [q]i32) (median_vals: [q]f32)
       --let qleafs = map (\l -> findLeaf median_dims median_vals height l) input
 
 def findAllPaths [m] (path : [m]i32) (leaf_num : i32) =
-    --let init_leafs_V = replicate m leaf_num
     map (\i ->let contact = path[i]
               let offset = if (contact == 1) then -(1 <<(m - i - 1))
                                           else (1 <<(m - i - 1))
@@ -73,7 +72,7 @@ let main [m] [d] (k: i64) (defppl: i32) (input: [m][d]f32) =
                       path_arrs[::defppl64] leaf_numbers[::defppl64]
     let leafs_with_ind = zip indir leafs
     let leafs2d        = unflatten (m'64 / defppl64) defppl64 leafs_with_ind
-    let Vi_vals4d = map (\vi -> map (\ind -> leafs2d[ind]) vi) Vis
+    let Vi_vals4d = map (\vi -> map (\ind -> leafs2d[ind]) vi) Vis --try using flatten in here!
     --- flatten the values so each Vi is just an array of points and not leaves
     let Vi_leafnum_m1  = defppl64 * height1 
     let Vi_vals3d      = map (\vi -> flatten vi :> [Vi_leafnum_m1](i32,[d]f32) ) Vi_vals4d
@@ -82,6 +81,7 @@ let main [m] [d] (k: i64) (defppl: i32) (input: [m][d]f32) =
     let knns2 =  map3 (\query vi knn0 -> 
                         bruteForce query knn0 vi 
                     ) leafs Vi_for_queries init2_knns
+    --- Repeat because I dont know how to
     let knn3  = map3 (\query i knn0 -> 
                         bruteForce query knn0 leafs2d[i] 
                     ) leafs leaf_numbers knns2

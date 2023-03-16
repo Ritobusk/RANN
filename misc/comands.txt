@@ -7,6 +7,6 @@
  cat data.in | ./pjqj
 
 
- sudo openconnect vpn.ku.dk --base-mtu=1450
+sudo openconnect -u szm249 vpn.ku.dk --base-mtu=1450
 
- ssh -l szm249 futharkhpa03fl.unicph.domain
+ssh -l szm249 futharkhpa03fl.unicph.domain
