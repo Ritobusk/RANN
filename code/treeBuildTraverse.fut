@@ -57,24 +57,26 @@ let main [m] [d] (k: i64) (defppl: i32) (input: [m][d]f32) =
     --- Build tree
     let (height, num_inner_nodes, _, m') = computeTreeShape (i32.i64 m) defppl
     let m'64 = i64.i32 m'
+    let defppl64 = i64.i32 defppl
     let init2_knns = init_knns ++ (replicate (m'64 - m) (replicate k (-1i32, 0.0))) :> [m'64][k](i32, f32)
     let (leafs, indir, median_dims, median_vals) =
             mkKDtree height (i64.i32 num_inner_nodes) (m'64) input
     --- The initial leaf and its path
-    let leaf_numbers = map (\i -> i/2) (iota32 m'64)
+    let leaf_numbers = map (\i -> i/defppl) (iota32 m'64) -- per point in leaf
     let height1 = i64.i32 (height+1)
+    let leafs_in_Vi = height1 + 1
     --- Maybe dont reverse for readability 
     --- since findAllPaths have to reverse aswell then
     let path_arrs = map (\l -> map (\p -> (l / (2**p)) % 2) (reverse (iota32 height1))) leaf_numbers
     --- The leafs that have contact = 1 for each leaf.
-    let defppl64 = i64.i32 defppl
-    let Vis = map2 (\pa lnum -> (findAllPaths pa lnum) ) 
+    let Vis = map2 (\pa lnum -> let cont1 =(findAllPaths pa lnum)
+                                  in [leaf_numbers[lnum]] ++ cont1 :> [leafs_in_Vi]i32) 
                       path_arrs[::defppl64] leaf_numbers[::defppl64]
     let leafs_with_ind = zip indir leafs
     let leafs2d        = unflatten (m'64 / defppl64) defppl64 leafs_with_ind
     let Vi_vals4d = map (\vi -> map (\ind -> leafs2d[ind]) vi) Vis --try using flatten in here!
     --- flatten the values so each Vi is just an array of points and not leaves
-    let Vi_leafnum_m1  = defppl64 * height1 
+    let Vi_leafnum_m1  = defppl64 * leafs_in_Vi 
     let Vi_vals3d      = map (\vi -> flatten vi :> [Vi_leafnum_m1](i32,[d]f32) ) Vi_vals4d
     let Vi_for_queries = map (\i -> Vi_vals3d[i]) leaf_numbers :> [m'64][](i32, [d]f32)
     --let Vim = map2 (\i vi -> leafs2d[i] ++ vi) leaf_numbers Vi_for_queries  
@@ -82,8 +84,8 @@ let main [m] [d] (k: i64) (defppl: i32) (input: [m][d]f32) =
                         bruteForce query knn0 vi 
                     ) leafs Vi_for_queries init2_knns
     --- Repeat because I dont know how to
-    let knn3  = map3 (\query i knn0 -> 
-                        bruteForce query knn0 leafs2d[i] 
-                    ) leafs leaf_numbers knns2
-    let (knn_inds, knn_dists) = unzip <| map (\knn_tup -> unzip knn_tup) knn3
+    --let knn3  = map3 (\query i knn0 -> 
+    --                    bruteForce query knn0 leafs2d[i] 
+    --                ) leafs leaf_numbers knns2
+    let (knn_inds, knn_dists) = unzip <| map (\knn_tup -> unzip knn_tup) knns2
     in  (leafs, indir, median_dims, median_vals, Vis, knn_inds, knn_dists)
