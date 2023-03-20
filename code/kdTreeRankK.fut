@@ -37,7 +37,6 @@ def computeTreeShape (m: i32) (defppl: i32) : (i32, i32, i32, i32) =
 --         2. the indirect array that holds the original indices of each point
 --         3. the index of the dimension that is split
 --         4. the median value of the split dimension
--- !NOT NEEDED        5. the closest ancestor node index that splits the same dimension (or -1 if none)!
 def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
                      (input: [m][d]f32) :
            (*[m'][d]f32, *[m']i32, *[q]i32, *[q]f32) =
@@ -61,9 +60,9 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
             let indir2d = unflatten nodes_this_lvl pts_per_node_at_lev indir
 
             -- dimensions to be split for each node at this level is equal to the level
-            let med_dims =  if lev >= (i32.i64 d) then replicate nodes_this_lvl (i32.i64 (d-1))
-                            else replicate nodes_this_lvl lev
-                
+            --let med_dims =  if lev >= (i32.i64 d) then replicate nodes_this_lvl (i32.i64 (d-1))
+            --                else replicate nodes_this_lvl lev
+            let med_dims = replicate nodes_this_lvl (lev % (i32.i64 d))    
             -- med_dims = replicate (height/d) (iota d) 
 
             -- sort the chosen dimension for each node
