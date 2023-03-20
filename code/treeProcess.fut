@@ -1,4 +1,5 @@
 import "kdTreeRankK"
+import "lib/github.com/diku-dk/sorts/radix_sort"
 
 def sumSqrsSeq [d] (xs: [d]f32) (ys: [d]f32) : f32 =
     loop (res) = (0.0f32) for (x,y) in (zip xs ys) do
@@ -68,7 +69,10 @@ let main [m] [n] [d] (k: i64) (defppl: i32) (input: [m][d]f32) (queries: [n][d]f
 
     -- 3. sort `(zip querries leaf_inds)` in increasing order of
     --      their leaf_ind (second element)
-
+    let (sorted_query, sorted_query_ind) = 
+      zip queries queries_init_leafs |>
+      (radix_sort_float_by_key (\(_,l) -> l) i64.num_bits i64.get_bit) |> unzip
+    
     -- 4. for each querry compute its knns from its own leaf
     
 
@@ -81,4 +85,4 @@ let main [m] [n] [d] (k: i64) (defppl: i32) (input: [m][d]f32) (queries: [n][d]f
     --     in  better_nn_set
     --
 
-    in  (leafs, indir, median_dims, median_vals, queries_init_leafs)
+    in  (leafs, indir, median_dims, median_vals, queries_init_leafs, sorted_query)

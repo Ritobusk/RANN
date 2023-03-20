@@ -59,11 +59,8 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
             let pts_per_node_at_lev = m' / nodes_this_lvl
             let indir2d = unflatten nodes_this_lvl pts_per_node_at_lev indir
 
-            -- dimensions to be split for each node at this level is equal to the level
-            --let med_dims =  if lev >= (i32.i64 d) then replicate nodes_this_lvl (i32.i64 (d-1))
-            --                else replicate nodes_this_lvl lev
+            -- dimensions to be split for each node at this level
             let med_dims = replicate nodes_this_lvl (lev % (i32.i64 d))    
-            -- med_dims = replicate (height/d) (iota d) 
 
             -- sort the chosen dimension for each node
             let chosen_columns = map2 (\indir_chunk dim ->
