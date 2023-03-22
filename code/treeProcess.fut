@@ -14,7 +14,7 @@ def bruteForce [m][d][k] (query: [d]f32)
       --for (i,refpt) in (zip (iota m) refs) do
       --  let dist = f32.sqrt <| sumSqrsSeq query refpt in
       for i < i32.i64 m do
-        let dist = f32.sqrt <| sumSqrsSeq query (refs[i].1) in
+        let dist = sumSqrsSeq query (refs[i].1) in
         if dist > knns[k-1].1 then knns -- early exit
         --else if dist == 0.0 then knns  -- Causes compile error?? 0.23.1
         else let ref_ind = refs[i].0 in
@@ -52,12 +52,13 @@ def findAllPaths [m] (path : [m]i32) (leaf_num : i32) =
               ) (iota m)
 
 let main [m] [n] [d] (k: i64) (defppl: i32) (input: [m][d]f32) (queries: [n][d]f32) =
-    let init_knns = replicate m (replicate k (-1i32, f32.inf))
+    let init_knns = replicate n (replicate k (-1i32, f32.inf))
+    --let (bim, bom) = unzip init_knns
     --- Build tree
     let (height, num_inner_nodes, _, m') = computeTreeShape (i32.i64 m) defppl
     let m'64 = i64.i32 m'
     let defppl64 = i64.i32 defppl
-    let init2_knns = init_knns ++ (replicate (m'64 - m) (replicate k (-1i32, f32.inf))) :> [m'64][k](i32, f32)
+    --let init2_knns = init_knns ++ (replicate (m'64 - m) (replicate k (-1i32, f32.inf))) :> [m'64][k](i32, f32)
     let (leafs, indir, median_dims, median_vals) =
             mkKDtree height (i64.i32 num_inner_nodes) (m'64) input
 
@@ -69,13 +70,22 @@ let main [m] [n] [d] (k: i64) (defppl: i32) (input: [m][d]f32) (queries: [n][d]f
 
     -- 3. sort `(zip querries leaf_inds)` in increasing order of
     --      their leaf_ind (second element)
-    let (sorted_query, sorted_query_ind) = 
-      zip queries queries_init_leafs |>
-      (radix_sort_float_by_key (\(_,l) -> l) i64.num_bits i64.get_bit) |> unzip
+    let (sorted_query_with_ind, sorted_query_leaf) = 
+      let q_with_ind = zip queries (iota n) 
+      let q_ind_leaf = zip q_with_ind queries_init_leafs
+      in (radix_sort_float_by_key (\(_,l) -> l) i64.num_bits i64.get_bit q_ind_leaf) |> unzip
     
-    -- 4. for each querry compute its knns from its own leaf
-    
+    let (sorted_query, sorted_query_ind) = unzip sorted_query_with_ind 
 
+    -- 4. for each querry compute its knns from its own leaf
+    let leafs_with_ind = zip indir leafs
+    let leafs2d = unflatten (m'64 / defppl64) defppl64 leafs_with_ind
+
+
+    let knn_nat_leaf = map3 (\q q_ind l_ind -> bruteForce q init_knns[q_ind] leafs2d[l_ind] ) 
+                                                              sorted_query sorted_query_ind sorted_query_leaf
+
+    let (knn_ind, dists) = unzip knn_nat_leaf[0] 
     -- 5. have a loop which goes from [0 .. height - 1] which refines
     --    the nearest neighbors
     --
@@ -85,4 +95,4 @@ let main [m] [n] [d] (k: i64) (defppl: i32) (input: [m][d]f32) (queries: [n][d]f
     --     in  better_nn_set
     --
 
-    in  (leafs, indir, median_dims, median_vals, queries_init_leafs, sorted_query)
+    in  (leafs, indir, median_dims, median_vals, sorted_query_leaf, sorted_query, sorted_query_ind, knn_ind, dists)
