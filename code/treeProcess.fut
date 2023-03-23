@@ -1,3 +1,9 @@
+-- Randomized Approximate K-D Trees
+-- ==
+-- compiled input @ dataProcess.in
+
+-- output @ LocVolCalib-data/small.out
+
 import "kdTreeRankK"
 import "lib/github.com/diku-dk/sorts/radix_sort"
 
@@ -47,8 +53,28 @@ def reverseBit (num: i64) (bit: i64) : i64 =
                                   else  bit_val
     in num + rev_val
     
+def log2Int (n : i64) : i32 =
+  let (_, res) =
+    loop (n, r) = (n, 0i32)
+      while n > 1 do
+        (n >> 1, r+1)
+  in res 
 
-
+-- ToDos:
+-- 1. Pass the desired `height` of the kd-tree as program parameter instead of `defppl`
+-- 2. Fix the construction of the kd-tree to not split in the middle of a set of points
+--      having the same value as the median.
+--    Representation of kd-tree:
+--      - you knwo that the tree is still fully balanced, but the number of points in
+--        each leaf does not have to be the same.
+--      - therefore, when you are building the kd-tree, you need to keep track of the
+--        shape of each level of the tree, i.e., level `i` has `2^i` nodes, hence it
+--        corresponds to an arrray of `2^i` subarrays. The sum of the shape array has
+--        to equal the number of reference points.
+--      - on the rightside, you will probably pad with some empty arrays.
+-- 3. adjust the rest of the code, i.e., of this file, to work with the new
+--    kd-tree representation.
+--
 def main [m] [n] [d] (k: i64) (defppl: i32) (input: [m][d]f32) (queries: [n][d]f32) =
     let init_knns = replicate n (replicate k (-1i32, f32.inf))
     --- Build tree (height is "0-indexed")
@@ -57,19 +83,20 @@ def main [m] [n] [d] (k: i64) (defppl: i32) (input: [m][d]f32) (queries: [n][d]f
     let defppl64 = i64.i32 defppl
     let (leafs, indir, median_dims, median_vals) =
             mkKDtree height (i64.i32 num_inner_nodes) (m'64) input
+    let num_leafs = length leafs
 
     -- 2. Find the leaf to which each query "naturally" belongs
     --    If your set of querries is named `querries` this is
     --    achieved with a map:
     --      `let leaf_inds = map (findLeaf kdtree) querries`
-    let queries_init_leafs = map (\l -> findLeaf median_dims median_vals height l) queries
+    let queries_init_leafs = map (findLeaf median_dims median_vals height) queries
 
     -- 3. sort `(zip querries leaf_inds)` in increasing order of
     --      their leaf_ind (second element)
     let (sorted_query_with_ind, sorted_query_leaf) = 
       let q_with_ind = zip queries (iota n) 
       let q_ind_leaf = zip q_with_ind queries_init_leafs
-      in (radix_sort_float_by_key (\(_,l) -> l) i64.num_bits i64.get_bit q_ind_leaf) |> unzip
+      in (radix_sort_int_by_key (\(_,l) -> l) (log2Int num_leafs) i64.get_bit q_ind_leaf) |> unzip
     
     let (sorted_query, sorted_query_ind) = unzip sorted_query_with_ind 
 
