@@ -9,14 +9,10 @@ def bruteForce [m][d][k] (query: [d]f32)
                          (knns0: [k](i32,f32))
                          (refs: [m](i32,[d]f32))
                        : [k](i32,f32) =
-    --if query[0] == f32.lowest then copy knns else
     loop (knns) = (copy knns0)
-      --for (i,refpt) in (zip (iota m) refs) do
-      --  let dist = f32.sqrt <| sumSqrsSeq query refpt in
       for i < i32.i64 m do
         let dist = sumSqrsSeq query (refs[i].1) in
         if dist > knns[k-1].1 then knns -- early exit
-        --else if dist == 0.0 then knns  -- Causes compile error?? 0.23.1
         else let ref_ind = refs[i].0 in
              let (_, _, knns') =
                loop (dist, ref_ind, knns) for j < k do
@@ -53,14 +49,12 @@ def reverseBit (num: i64) (bit: i64) : i64 =
     
 
 
-let main [m] [n] [d] (k: i64) (defppl: i32) (input: [m][d]f32) (queries: [n][d]f32) =
+def main [m] [n] [d] (k: i64) (defppl: i32) (input: [m][d]f32) (queries: [n][d]f32) =
     let init_knns = replicate n (replicate k (-1i32, f32.inf))
-    --let (bim, bom) = unzip init_knns
-    --- Build tree
+    --- Build tree (height is "0-indexed")
     let (height, num_inner_nodes, _, m') = computeTreeShape (i32.i64 m) defppl
     let m'64 = i64.i32 m'
     let defppl64 = i64.i32 defppl
-    --let init2_knns = init_knns ++ (replicate (m'64 - m) (replicate k (-1i32, f32.inf))) :> [m'64][k](i32, f32)
     let (leafs, indir, median_dims, median_vals) =
             mkKDtree height (i64.i32 num_inner_nodes) (m'64) input
 
@@ -95,7 +89,7 @@ let main [m] [n] [d] (k: i64) (defppl: i32) (input: [m][d]f32) (queries: [n][d]f
     --     let new_leaves = map (reverseBit i) leaf_numbers
     --     let better_nn_set = map3 bruteForce querries curr_nn_set new_leaves 
     --     in  better_nn_set
-    --
+
     let new_knns_sorted =
       loop (curr_nn_set) = (knn_nat_leaf) for i < (i64.i32 height + 1) do
           let new_leaves = map (\l_num -> reverseBit l_num i) sorted_query_leaf

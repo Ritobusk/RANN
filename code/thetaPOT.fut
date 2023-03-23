@@ -88,10 +88,31 @@ let Theta [d] (point :  [d]f32) (permutations : [][]i64) (random_numbers : [][]f
             --let ind_2 = (i+1) * (d-1) + m2 * (d-1)
             in  calculate_Qj pointP random_numbers[i]
 
+def pseudoRandomOrthogonalTransformation [n] [d] (t: i32) (points : [n][d]f32) : [n][d]f32 =
+    let M1 =  d / 2
+    let M2 = M1
+
+    let points' = copy points
+
+    -- RNGs for the P and Q functions
+    let rng_origin_P = rng_engine.rng_from_seed [t]
+    let rngs_M1M2 = rng_engine.split_rng (M1+M2) rng_origin_P
+    let (rngs_P, permutations_P) = unzip <| map (\r -> shuffle.shuffle r (iota d)) rngs_M1M2
+
+    let rng_origin_Q = rng_engine.rng_from_seed [t*10]
+    let rngs_dM1M2 = rng_engine.split_rng ((M1+M2) * (d-1)) rng_origin_Q
+    
+    -- (d-1)*(m1+m2) random numbers for Q normalized and then multiplied by 2 pi
+    let (_ , rand_numbers_Q)     = unzip <| map (\r -> rng_engine.rand r) rngs_dM1M2 
+    let rand_numbers_Q_normalized2pi = map (\num -> (f32.f64 (((f64.u32 num) / (f64.u32 4294967295)) * (2*real.pi) ))) rand_numbers_Q
+    let rndQ_normalized2d = unflatten (M1+M2) (d-1) rand_numbers_Q_normalized2pi
+
+    in map (\p ->  Theta p  permutations_P rndQ_normalized2d M1 M2) points'
+
 
 let main [n][d] (Tval: i64) (points : [n][d]f32) : [][n][d]f32 =
     map (\t ->
-            let t = i32.i64 t
+            let t = i32.i64 ((t+1) * 4)
             let M1 =  d / 2
             let M2 = M1
 
