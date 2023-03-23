@@ -44,12 +44,14 @@ def findLeaf [q][d] (median_dims: [q]i32) (median_vals: [q]f32)
   let leaf_val = leaf - i32.i64 q
   in i64.i32 leaf_val
 
-def findAllPaths [m] (path : [m]i32) (leaf_num : i32) =
-    map (\i ->let contact = path[i]
-              let offset = if (contact == 1) then -(1 <<( i)) -- -(1 <<(m - i - 1)) if reversed
-                                          else (1 <<(i))
-              in leaf_num + (i32.i64 offset)
-              ) (iota m)
+def reverseBit (num: i64) (bit: i64) : i64 =
+    let bit_val  = 1 << bit
+    let bit_rm = (num / bit_val) % 2
+    let rev_val = if bit_rm == 1 then -bit_val
+                                  else  bit_val
+    in num + rev_val
+    
+
 
 let main [m] [n] [d] (k: i64) (defppl: i32) (input: [m][d]f32) (queries: [n][d]f32) =
     let init_knns = replicate n (replicate k (-1i32, f32.inf))
@@ -85,7 +87,7 @@ let main [m] [n] [d] (k: i64) (defppl: i32) (input: [m][d]f32) (queries: [n][d]f
     let knn_nat_leaf = map3 (\q q_ind l_ind -> bruteForce q init_knns[q_ind] leafs2d[l_ind] ) 
                                                               sorted_query sorted_query_ind sorted_query_leaf
 
-    let (knn_ind, dists) = unzip knn_nat_leaf[0] 
+    --let (knn_ind, dists) = unzip knn_nat_leaf[0] 
     -- 5. have a loop which goes from [0 .. height - 1] which refines
     --    the nearest neighbors
     --
@@ -94,5 +96,15 @@ let main [m] [n] [d] (k: i64) (defppl: i32) (input: [m][d]f32) (queries: [n][d]f
     --     let better_nn_set = map3 bruteForce querries curr_nn_set new_leaves 
     --     in  better_nn_set
     --
+    let new_knns_sorted =
+      loop (curr_nn_set) = (knn_nat_leaf) for i < (i64.i32 height + 1) do
+          let new_leaves = map (\l_num -> reverseBit l_num i) sorted_query_leaf
+          let better_nn_set = map3 (\q q_knn l_ind -> bruteForce q q_knn leafs2d[l_ind])
+                                                        sorted_query curr_nn_set new_leaves
+          in better_nn_set
 
-    in  (leafs, indir, median_dims, median_vals, sorted_query_leaf, sorted_query, sorted_query_ind, knn_ind, dists)
+    let new_knns = scatter (copy init_knns) sorted_query_ind new_knns_sorted
+    let (new_knn_ind, new_knn_dists) = unzip new_knns[0]
+
+    in  (leafs, indir, median_dims, median_vals, sorted_query_leaf, sorted_query, 
+                      sorted_query_ind, new_knn_ind, new_knn_dists)
