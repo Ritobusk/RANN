@@ -74,6 +74,14 @@ def ifilter as p = filter p as
 
 def ones [q] 't (_xs: [q]t) = replicate q 1i32
 
+-- Write this function in flattened form
+def partition3L 't [n] [p]
+        (mask : [n]bool) -- mask[i] == True => associated predicate holds on elem i
+        (shp : [p]i64, flat_arr : [n]t) -- representation of an irregular array of array
+      : ([n]t, [p]i64) = -- result: the flat array reorganized & splitting point of each segment
+  -- replace the dummy implementation
+  (flat_arr, shp)
+
 def partition3 [ n ] 't -- Assume t = i32 , n = 6 ,
               ( p : ( t -> bool )) -- p (x:i32 )= 0 == (x%2) ,
               ( arr : [ n ] t ) : ([ n ]t , i64 ) = -- arr = [5 ,4 ,2 ,3 ,7 ,8]

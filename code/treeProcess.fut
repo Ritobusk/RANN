@@ -1,3 +1,9 @@
+-- Randomized Approximate K-D Trees
+-- ==
+-- compiled input @ dataProcess.in
+
+-- output @ LocVolCalib-data/small.out
+
 import "kdTreeRankK"
 import "lib/github.com/diku-dk/sorts/radix_sort"
 
@@ -10,14 +16,10 @@ def bruteForce [m][d][k] (query: [d]f32)
                          (knns0: [k](i32,f32))
                          (refs: [m](i32,[d]f32))
                        : [k](i32,f32) =
-    --if query[0] == f32.lowest then copy knns else
     loop (knns) = (copy knns0)
-      --for (i,refpt) in (zip (iota m) refs) do
-      --  let dist = f32.sqrt <| sumSqrsSeq query refpt in
       for i < i32.i64 m do
         let dist = sumSqrsSeq query (refs[i].1) in
         if dist > knns[k-1].1 then knns -- early exit
-        --else if dist == 0.0 then knns  -- Causes compile error?? 0.23.1
         else let ref_ind = refs[i].0 in
              let (_, _, knns') =
                loop (dist, ref_ind, knns) for j < k do
@@ -52,31 +54,50 @@ def reverseBit (num: i64) (bit: i64) : i64 =
                                   else  bit_val
     in num + rev_val
     
+def log2Int (n : i64) : i32 =
+  let (_, res) =
+    loop (n, r) = (n, 0i32)
+      while n > 1 do
+        (n >> 1, r+1)
+  in res 
 
-
-let main [m] [n] [d] (k: i64) (defppl: i32) (input: [m][d]f32) (queries: [n][d]f32) =
+-- ToDos:
+-- 1. Pass the desired `height` of the kd-tree as program parameter instead of `defppl`
+-- 2. Fix the construction of the kd-tree to not split in the middle of a set of points
+--      having the same value as the median.
+--    Representation of kd-tree:
+--      - you knwo that the tree is still fully balanced, but the number of points in
+--        each leaf does not have to be the same.
+--      - therefore, when you are building the kd-tree, you need to keep track of the
+--        shape of each level of the tree, i.e., level `i` has `2^i` nodes, hence it
+--        corresponds to an arrray of `2^i` subarrays. The sum of the shape array has
+--        to equal the number of reference points.
+--      - on the rightside, you will probably pad with some empty arrays.
+-- 3. adjust the rest of the code, i.e., of this file, to work with the new
+--    kd-tree representation.
+--
+def main [m] [n] [d] (k: i64) (defppl: i32) (input: [m][d]f32) (queries: [n][d]f32) =
     let init_knns = replicate n (replicate k (-1i32, f32.inf))
-    --let (bim, bom) = unzip init_knns
-    --- Build tree
+    --- Build tree (height is "0-indexed")
     let (height, num_inner_nodes, _, m') = computeTreeShape (i32.i64 m) defppl
     let m'64 = i64.i32 m'
     let defppl64 = i64.i32 defppl
-    --let init2_knns = init_knns ++ (replicate (m'64 - m) (replicate k (-1i32, f32.inf))) :> [m'64][k](i32, f32)
     let (leafs, indir, median_dims, median_vals) =
             mkKDtree height (i64.i32 num_inner_nodes) (m'64) input
+    let num_leafs = length leafs
 
     -- 2. Find the leaf to which each query "naturally" belongs
     --    If your set of querries is named `querries` this is
     --    achieved with a map:
     --      `let leaf_inds = map (findLeaf kdtree) querries`
-    let queries_init_leafs = map (\l -> findLeaf median_dims median_vals height l) queries
+    let queries_init_leafs = map (findLeaf median_dims median_vals height) queries
 
     -- 3. sort `(zip querries leaf_inds)` in increasing order of
     --      their leaf_ind (second element)
     let (sorted_query_with_ind, sorted_query_leaf) = 
       let q_with_ind = zip queries (iota n) 
       let q_ind_leaf = zip q_with_ind queries_init_leafs
-      in (radix_sort_float_by_key (\(_,l) -> l) i64.num_bits i64.get_bit q_ind_leaf) |> unzip
+      in (radix_sort_int_by_key (\(_,l) -> l) (log2Int num_leafs) i64.get_bit q_ind_leaf) |> unzip
     
     let (sorted_query, sorted_query_ind) = unzip sorted_query_with_ind 
 
@@ -96,7 +117,7 @@ let main [m] [n] [d] (k: i64) (defppl: i32) (input: [m][d]f32) (queries: [n][d]f
     --     let new_leaves = map (reverseBit i) leaf_numbers
     --     let better_nn_set = map3 bruteForce querries curr_nn_set new_leaves 
     --     in  better_nn_set
-    --
+
     let new_knns_sorted =
       loop (curr_nn_set) = (knn_nat_leaf) for i < (i64.i32 height + 1) do
           let new_leaves = map (\l_num -> reverseBit l_num i) sorted_query_leaf
