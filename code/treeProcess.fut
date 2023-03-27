@@ -5,6 +5,7 @@ def sumSqrsSeq [d] (xs: [d]f32) (ys: [d]f32) : f32 =
     loop (res) = (0.0f32) for (x,y) in (zip xs ys) do
         let z = x-y in res + z*z
 
+-- Bruteforce knn that returns 
 def bruteForce [m][d][k] (query: [d]f32) 
                          (knns0: [k](i32,f32))
                          (refs: [m](i32,[d]f32))
@@ -29,7 +30,7 @@ def bruteForce [m][d][k] (query: [d]f32)
                       in  (cur_nn, ref_ind, knns)
              in  knns'
 
--- give the median dimensions and values for each internal k-d tree node,
+-- Given the median dimensions and values for each internal k-d tree node,
 --   finds the leaf to which the query naturally belongs to.
 def findLeaf [q][d] (median_dims: [q]i32) (median_vals: [q]f32)
                     (height: i32) (query: [d]f32) =
