@@ -1,5 +1,7 @@
 def log2 x = (loop (y,c) = (x,0i32) while y > 1i32 do (y >> 1, c+1)).1
 
+def iota32 n = (0..1..<i32.i64 n) :> [n]i32
+
 def partition2Ind [n] (cs: [n]bool) : ([n]i32, i32) =
     let tfs = map (\f -> if f then 1 else 0) cs
     let isT = scan (+) 0 tfs
@@ -82,9 +84,9 @@ def partition3L 't [n] [p]
   -- replace the dummy implementation
   (flat_arr, shp)
 
-def partition3 [ n ] 't -- Assume t = i32 , n = 6 ,
-              ( p : ( t -> bool )) -- p (x:i32 )= 0 == (x%2) ,
-              ( arr : [ n ] t ) : ([ n ]t , i64 ) = -- arr = [5 ,4 ,2 ,3 ,7 ,8]
+def partition3 [ n ] 't 
+              ( p : ( t -> bool )) 
+              ( arr : [ n ] t ) : ([ n ]t , i64 ) = 
     let cs = map p arr 
     let tfs = map (\ f -> if f then 1 else 0) cs
     let isT = scan (+) 0 tfs
@@ -97,6 +99,52 @@ def partition3 [ n ] 't -- Assume t = i32 , n = 6 ,
     let r = scatter (replicate n arr[0]) inds arr
     in (r , i )
 
+--- Took these functions from Parallel Programming in Futhark chapter 8
+def segmented_scan 't [n] (g:t->t->t) (ne: t) (flags: [n]bool) (vals: [n]t): [n]t =
+  let pairs = scan ( \ (v1,f1) (v2,f2) ->
+                       let f = f1 || f2
+                       let v = if f2 then v2 else g v1 v2
+                       in (v,f) ) (ne,false) (zip vals flags)
+  let (res,_) = unzip pairs
+  in res
+
+def replicated_iota [n] (reps:[n]i32) : []i32 =
+  let s1 = scan (+) 0 reps
+  let s2 = map (\i -> if i==0 then 0 else (i64.i32 s1[i-1])) (iota n)
+  let tmp = scatter (replicate (i64.i32(reduce (+) 0 reps)) 0) (s2) (iota32 n)
+  let flags = map (>0) tmp
+  in segmented_scan (+) 0 flags tmp
+
+def segmented_replicate [n] (reps:[n]i32) (vs:[n]i32) : []i32 =
+  let idxs = replicated_iota reps
+  in map (\i -> vs[i]) idxs
+
+def idxs_to_flags [n] (is : [n]i32) : []bool =
+  let vs = segmented_replicate is (iota32 n)
+  let m = length vs
+  in map2 (!=) (vs :> [m]i32) ([0] ++ vs[:m-1] :> [m]i32)
+---
+
+
+let mkFlagArray 't [m] 
+            (aoa_shp: [m]i32) (zero: t)
+            (aoa_val: [m]t  ) : []t =
+  let shp_scn = scan (+) 0 aoa_shp
+  let aoa_len = shp_scn[m-1]
+  let shp_ind = imap2 aoa_shp (indices aoa_shp)
+                      (\ s i ->
+                         if s==0 then -1i64
+                         else if i==0 then 0i64
+                         else i64.i32 shp_scn[i-1]
+                      )
+  let flags = scatter (replicate (i64.i32 aoa_len) zero)
+                      shp_ind aoa_val
+  in flags
+
+let mkII1 [m] (shp: [m]i32) : *[]i32 =
+    let flags = mkFlagArray shp 0i8 (replicate m 1i8)
+    in  map i32.i8 flags
+     |> scan (+) 0i32
 
 -- meds: hopefully a decent estimate of the median values for each partition
 -- ks:   the k-th smallest element to be searched for each partition (starting from 1)

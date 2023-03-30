@@ -158,7 +158,7 @@ entry main [m][n] (ass: [m][n]f32) =
     let II1 = (tabulate_2d m n (\i _j -> i32.i64 i + 1) |> flatten) :> *[N]i32
     let A = copy (flatten ass) :> *[N]f32
     let medians = rankSearchBatch means ks shp II1 A
-    in medians
+    in (mins, maxs, means, medians)
 
 entry test [m][n] (ass: [m][n]f32) =
     --let mins = map (reduce_comm f32.min f32.highest) ass

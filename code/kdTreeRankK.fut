@@ -1,6 +1,5 @@
 import "util"
 
-def iota32 n = (0..1..<i32.i64 n) :> [n]i32
 
 local def closestLog2 (p: i32) : i32 =
     if p<=1 then 0
