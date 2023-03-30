@@ -99,7 +99,7 @@ def partition3 [ n ] 't
     let r = scatter (replicate n arr[0]) inds arr
     in (r , i )
 
---- Took these functions from Parallel Programming in Futhark chapter 8
+--- Took these functions from 'Parallel Programming in Futhark' chapter 8
 def segmented_scan 't [n] (g:t->t->t) (ne: t) (flags: [n]bool) (vals: [n]t): [n]t =
   let pairs = scan ( \ (v1,f1) (v2,f2) ->
                        let f = f1 || f2
@@ -115,9 +115,10 @@ def replicated_iota [n] (reps:[n]i32) : []i32 =
   let flags = map (>0) tmp
   in segmented_scan (+) 0 flags tmp
 
-def segmented_replicate [n] (reps:[n]i32) (vs:[n]i32) : []i32 =
+def segmented_replicate [n] 't (reps:[n]i32) (vs:[n]t) : []t =
   let idxs = replicated_iota reps
   in map (\i -> vs[i]) idxs
+
 
 def idxs_to_flags [n] (is : [n]i32) : []bool =
   let vs = segmented_replicate is (iota32 n)

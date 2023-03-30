@@ -85,6 +85,12 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
             let medians_this_lvl = rankSearchBatch means ks shp_this_lvl II1 (copy chosen_column) 
                 -- Got an error when not using copy. Don't know why.
 
+            --- Calculate the mask for partition3L
+            let medians_for_each_elem = segmented_replicate shp_this_lvl medians_this_lvl :> [m']f32
+            let mask_arr = map2 (\p_val m_val -> p_val < m_val) chosen_column medians_for_each_elem
+
+            --- Partition to split each node
+            -- let (indir'', new_shp) = partition3L mask_arr <| (zip shp_this_lvl indir)
 
             let this_lev_inds = map (+ (nodes_this_lvl-1)) (iota nodes_this_lvl)
             let median_dims' = scatter median_dims this_lev_inds (replicate nodes_this_lvl med_dim)
