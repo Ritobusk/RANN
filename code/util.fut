@@ -76,28 +76,6 @@ def ifilter as p = filter p as
 
 def ones [q] 't (_xs: [q]t) = replicate q 1i32
 
--- Write this function in flattened form
-def partition3L 't [n] [p]
-        (mask : [n]bool) -- mask[i] == True => associated predicate holds on elem i
-        (shp : [p]i64, flat_arr : [n]t) -- representation of an irregular array of array
-      : ([n]t, [p]i64) = -- result: the flat array reorganized & splitting point of each segment
-  -- replace the dummy implementation
-  (flat_arr, shp)
-
-def partition3 [ n ] 't 
-              ( p : ( t -> bool )) 
-              ( arr : [ n ] t ) : ([ n ]t , i64 ) = 
-    let cs = map p arr 
-    let tfs = map (\ f -> if f then 1 else 0) cs
-    let isT = scan (+) 0 tfs
-    let i = isT[n-1] 
-    let ffs = map (\f -> if f then 0 else 1) cs 
-    let isF = map (+i) <| scan (+) 0 ffs 
-    let inds = map3 (\c iT iF -> if c then iT -1
-                                       else iF -1
-                    ) cs isT isF
-    let r = scatter (replicate n arr[0]) inds arr
-    in (r , i )
 
 --- Took these functions from 'Parallel Programming in Futhark' chapter 8
 def segmented_scan 't [n] (g:t->t->t) (ne: t) (flags: [n]bool) (vals: [n]t): [n]t =
@@ -115,6 +93,7 @@ def replicated_iota [n] (reps:[n]i32) : []i32 =
   let flags = map (>0) tmp
   in segmented_scan (+) 0 flags tmp
 
+---! changed this to not just work on int32. Will it cause problems?
 def segmented_replicate [n] 't (reps:[n]i32) (vs:[n]t) : []t =
   let idxs = replicated_iota reps
   in map (\i -> vs[i]) idxs
@@ -125,6 +104,53 @@ def idxs_to_flags [n] (is : [n]i32) : []bool =
   let m = length vs
   in map2 (!=) (vs :> [m]i32) ([0] ++ vs[:m-1] :> [m]i32)
 ---
+
+
+-- Write this function in flattened form
+def partition3L 't [n] [p]
+        (mask : [n]bool) -- mask[i] == True => associated predicate holds on elem i
+        (shp_flag_arr: [n]bool)
+        (scan_shp: [p]i32)
+        (shp : [p]i32, flat_arr : [n]t) -- representation of an irregular array of array
+      : ([n]t, [p]i32) = -- result: the flat array reorganized & splitting point of each segment
+  -- replace the dummy implementation
+  let tfs = map (\f -> if f then 1 else 0) mask
+  let isT = segmented_scan (+) 0 shp_flag_arr tfs
+  let Ts_per_segment = map (\ind -> isT[ind-1]) scan_shp :> [p]i64
+  let T_indicies = replicated_iota shp :> [n]i32
+  let ffs = map (\f -> if f then 0 else 1) mask 
+
+  ---! ffs_2 Doens not work since the first elem of shp_flag_arr is false
+  let ffs_2 = map3  (\f_val is_new_segment segment_Tval ->
+                      if is_new_segment then f_val + Ts_per_segment[segment_Tval]
+                      else f_val
+                    ) ffs shp_flag_arr T_indicies
+
+  let isF  = segmented_scan (+) 0 shp_flag_arr ffs_2
+  let inds = map3 (\c iT iF -> if c then iT -1
+                                       else iF -1
+                  ) mask isT isF
+  let r =  scatter (replicate n flat_arr[0]) inds flat_arr
+
+
+  
+
+  in (flat_arr, Ts_per_segment) --(r, )
+
+def partition3 [ n ] 't 
+              ( p : ( t -> bool )) 
+              ( arr : [ n ] t ) : ([ n ]t , i64 ) = 
+    let cs = map p arr 
+    let tfs = map (\ f -> if f then 1 else 0) cs
+    let isT = scan (+) 0 tfs
+    let i = isT[n-1] 
+    let ffs = map (\f -> if f then 0 else 1) cs 
+    let isF = map (+i) <| scan (+) 0 ffs 
+    let inds = map3 (\c iT iF -> if c then iT -1
+                                       else iF -1
+                    ) cs isT isF
+    let r = scatter (replicate n arr[0]) inds arr
+    in (r , i )
 
 
 let mkFlagArray 't [m] 

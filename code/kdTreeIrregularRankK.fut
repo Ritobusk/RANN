@@ -76,8 +76,8 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
             let chosen_column = map (\ind -> input'[ind, med_dim]) indir 
 
             -- Calculate the median
-            let flag_arr = idxs_to_flags shp_this_lvl :> [m']bool
-            let sums_of_chosen_vals = segmented_scan (+) (0.0f32) flag_arr chosen_column
+            let shp_flag_arr = idxs_to_flags shp_this_lvl :> [m']bool
+            let sums_of_chosen_vals = segmented_scan (+) (0.0f32) shp_flag_arr chosen_column
             let means = map (\ind -> sums_of_chosen_vals[ind-1] / 
                                                     (f32.i64 average_pts_per_node_at_lvl)) scan_shp_this_lvl
             let ks  = map (\s -> s/2) shp_this_lvl
@@ -90,7 +90,14 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
             let mask_arr = map2 (\p_val m_val -> p_val < m_val) chosen_column medians_for_each_elem
 
             --- Partition to split each node
-            -- let (indir'', new_shp) = partition3L mask_arr <| (zip shp_this_lvl indir)
+            -- let (indir'', new_split) = partition3L mask_arr shp_flag_arr scan_shp_this_lvl <| (zip shp_this_lvl indir)
+
+            --- For the shape I just need to 'weave' isT with a 
+            ---   map2 (\shp_val T_val -> shp_val - T_val ) 
+            --- let tmp = map2 (\shp_val T_val -> shp_val - (i32.i64 T_val) ) shp new_split
+            --- let new_shape_ind = iota (nodes_this_lvl << 1)
+            --- let new_shape = map (\ind -> if (ind % 2) == 0 then new_split[ind/2] else tmp[ind/2]) new_shape_ind
+
 
             let this_lev_inds = map (+ (nodes_this_lvl-1)) (iota nodes_this_lvl)
             let median_dims' = scatter median_dims this_lev_inds (replicate nodes_this_lvl med_dim)
