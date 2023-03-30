@@ -133,10 +133,7 @@ def partition3L 't [n] [p]
                   ) mask isT isF
   let r =  scatter (replicate n flat_arr[0]) inds flat_arr
 
-
-  
-
-  in (r, Ts_per_segment) --(r, )
+  in (r, Ts_per_segment) 
 
 def partition3 [ n ] 't 
               ( p : ( t -> bool )) 
