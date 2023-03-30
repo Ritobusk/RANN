@@ -89,7 +89,7 @@ def segmented_scan 't [n] (g:t->t->t) (ne: t) (flags: [n]bool) (vals: [n]t): [n]
 def replicated_iota [n] (reps:[n]i32) : []i32 =
   let s1 = scan (+) 0 reps
   let s2 = map (\i -> if i==0 then 0 else (i64.i32 s1[i-1])) (iota n)
-  let tmp = scatter (replicate (i64.i32(reduce (+) 0 reps)) 0) (s2) (iota32 n)
+  let tmp = scatter (replicate (i64.i32(reduce (+) 0 reps)) 0) (s2) (iota32 n) -- replace reduce with last elem of s1
   let flags = map (>0) tmp
   in segmented_scan (+) 0 flags tmp
 
@@ -134,6 +134,23 @@ def partition3L 't [n] [p]
   let r =  scatter (replicate n flat_arr[0]) inds flat_arr
 
   in (r, Ts_per_segment) 
+
+-- ==
+-- compiled input {
+--  [false,true,false,true,false,true,false,true,false,true,false,true]
+--  [3,4,5]
+--  [1,2,3,4,5,6,7,8,9,10,11,12]  
+-- }
+-- output {
+-- [2,1,3,4,6,5,7,8,10,12,9,11]
+-- [1,2,3] 
+--}
+let main [m] [n] (mask: [n]bool) (shp: [m]i32) (f_arr : [n]i32) =
+  let scan_shp = scan (+) 0 shp
+  let shp_flag_arr = (idxs_to_flags shp) :> [n]bool
+  let (new_flat_arr, splits) =  partition3L mask shp_flag_arr scan_shp (shp, f_arr)
+  in (new_flat_arr, splits)
+
 
 def partition3 [ n ] 't 
               ( p : ( t -> bool )) 

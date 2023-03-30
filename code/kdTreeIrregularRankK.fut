@@ -90,7 +90,7 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
 
             --- Calculate the mask for partition3L
             let medians_for_each_elem = segmented_replicate shp_this_lvl medians_this_lvl :> [m']f32
-            let mask_arr = map2 (\p_val m_val -> p_val < m_val) chosen_column medians_for_each_elem
+            let mask_arr = map2 (\p_val m_val -> p_val < m_val) chosen_column medians_for_each_elem  --- use ii1 to index into medians
 
             --- Partition to split each node
             let (indir'', new_splits) = partition3L mask_arr shp_flag_arr scan_shp_this_lvl (shp_this_lvl, indir)

@@ -35,3 +35,8 @@ Fix the tree-building such that leaves does not nessasarily have the same size.
     I need to have a shape array that says where the leaves starts/stops (See cosmins comments)  
     Adjust treeProcess so it uses this new tree  
 Alternatively continue on the algorithm.  
+
+
+WEEK 8  
+Fix the flat building of the kdtree. Look at DPP lectures on irregular flattening.  
+Start using the flat irregular kdtree in the algorithm  
