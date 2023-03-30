@@ -90,19 +90,19 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
             let mask_arr = map2 (\p_val m_val -> p_val < m_val) chosen_column medians_for_each_elem
 
             --- Partition to split each node
-            -- let (indir'', new_split) = partition3L mask_arr shp_flag_arr scan_shp_this_lvl <| (zip shp_this_lvl indir)
+            let (indir'', new_splits) = partition3L mask_arr shp_flag_arr scan_shp_this_lvl (shp_this_lvl, indir)
 
-            --- For the shape I just need to 'weave' isT with a 
-            ---   map2 (\shp_val T_val -> shp_val - T_val ) 
-            --- let tmp = map2 (\shp_val T_val -> shp_val - (i32.i64 T_val) ) shp new_split
-            --- let new_shape_ind = iota (nodes_this_lvl << 1)
-            --- let new_shape = map (\ind -> if (ind % 2) == 0 then new_split[ind/2] else tmp[ind/2]) new_shape_ind
+            --- For the shape I just need to 'weave' isT with tmp below
+            let tmp = map2 (\shp_val T_val -> shp_val - T_val ) shp_this_lvl new_splits
+            let new_shape_ind = iota (nodes_this_lvl << 1)
+            let new_shape = map (\ind -> if (ind % 2) == 0 then new_splits[ind/2] else tmp[ind/2]) new_shape_ind
 
 
             let this_lev_inds = map (+ (nodes_this_lvl-1)) (iota nodes_this_lvl)
             let median_dims' = scatter median_dims this_lev_inds (replicate nodes_this_lvl med_dim)
             let median_vals' = scatter median_vals this_lev_inds medians_this_lvl
-            in  (indir, median_dims', median_vals', shape_arr)
+            let shape_arr''  = scatter shape_arr this_lev_inds new_shape 
+            in  (indir, median_dims', median_vals', shape_arr'')
 
     let input'' = map (\ ind -> map (\k -> input'[ind, k]) (iota32 d) ) indir' :> *[m'][d]f32
     in  (input'', indir', median_dims', median_vals', shape_arr')

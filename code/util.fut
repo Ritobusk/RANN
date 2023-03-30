@@ -116,26 +116,27 @@ def partition3L 't [n] [p]
   -- replace the dummy implementation
   let tfs = map (\f -> if f then 1 else 0) mask
   let isT = segmented_scan (+) 0 shp_flag_arr tfs
-  let Ts_per_segment = map (\ind -> isT[ind-1]) scan_shp :> [p]i64
+  let Ts_per_segment = map (\ind -> isT[ind-1]) scan_shp :> [p]i32
   let T_indicies = replicated_iota shp :> [n]i32
   let ffs = map (\f -> if f then 0 else 1) mask 
 
+  let shp_flag_alt = scatter (copy shp_flag_arr) [0] [true] 
   ---! ffs_2 Doens not work since the first elem of shp_flag_arr is false
   let ffs_2 = map3  (\f_val is_new_segment segment_Tval ->
-                      if is_new_segment then f_val + Ts_per_segment[segment_Tval]
+                      if is_new_segment then  (f_val + Ts_per_segment[segment_Tval])
                       else f_val
-                    ) ffs shp_flag_arr T_indicies
+                    ) ffs shp_flag_alt T_indicies
 
   let isF  = segmented_scan (+) 0 shp_flag_arr ffs_2
-  let inds = map3 (\c iT iF -> if c then iT -1
-                                       else iF -1
+  let inds = map3 (\c iT iF -> if c then i64.i32(iT -1)
+                                       else i64.i32(iF -1)
                   ) mask isT isF
   let r =  scatter (replicate n flat_arr[0]) inds flat_arr
 
 
   
 
-  in (flat_arr, Ts_per_segment) --(r, )
+  in (r, Ts_per_segment) --(r, )
 
 def partition3 [ n ] 't 
               ( p : ( t -> bool )) 
