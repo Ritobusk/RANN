@@ -4,7 +4,7 @@
 
 -- output @ LocVolCalib-data/small.out
 
-import "kdTreeRankK"
+import "kdTreeIrregularRankK"
 import "lib/github.com/diku-dk/sorts/radix_sort"
 
 def sumSqrsSeq [d] (xs: [d]f32) (ys: [d]f32) : f32 =
@@ -19,7 +19,7 @@ def bruteForce [m][d][k] (query: [d]f32)
     loop (knns) = (copy knns0)
       for i < i32.i64 m do
         let dist = sumSqrsSeq query (refs[i].1) in
-        if dist > knns[k-1].1 then knns -- early exit !!SHOULD BE >=
+        if dist > knns[k-1].1 then knns -- early exit
         else let ref_ind = refs[i].0 in
              let (_, _, knns') =
                loop (dist, ref_ind, knns) for j < k do
@@ -38,7 +38,7 @@ def findLeaf [q][d] (median_dims: [q]i32) (median_vals: [q]f32)
                     (height: i32) (query: [d]f32) =
   let leaf =
     loop (node_index) = (0)
-      while !( node_index >= ((1 << (height+1)) - 1)) do -- Maybe remove ! and replace >= with < 
+      while !( node_index >= ((1 << (height+1)) - 1)) do
         if query[median_dims[node_index]] < median_vals[node_index]
             then
                 (node_index+1)*2-1
@@ -79,11 +79,11 @@ def log2Int (n : i64) : i32 =
 def main [m] [n] [d] (k: i64) (defppl: i32) (input: [m][d]f32) (queries: [n][d]f32) =
     let init_knns = replicate n (replicate k (-1i32, f32.inf))
     --- Build tree (height is "0-indexed")
-    let (height, num_inner_nodes, _, m') = computeTreeShape (i32.i64 m) defppl
+    let (height, num_inner_nodes, m') = computeTreeShape (i32.i64 m) defppl
     --let (height, num_inner_nodes, m') = computeTreeShape (i32.i64 m) defppl
     let m'64 = i64.i32 m'
     let defppl64 = i64.i32 defppl
-    let (leafs, indir, median_dims, median_vals) =
+    let (leafs, indir, median_dims, median_vals, shape_arr) =
             mkKDtree height (i64.i32 num_inner_nodes) (m'64) input
     let num_leafs = length leafs
 
@@ -106,9 +106,11 @@ def main [m] [n] [d] (k: i64) (defppl: i32) (input: [m][d]f32) (queries: [n][d]f
     let leafs_with_ind = zip indir leafs
     let leafs2d = unflatten (m'64 / defppl64) defppl64 leafs_with_ind
 
+
     let knn_nat_leaf = map3 (\q q_ind l_ind -> bruteForce q init_knns[q_ind] leafs2d[l_ind] ) 
                                                               sorted_query sorted_query_ind sorted_query_leaf
 
+    --let (knn_ind, dists) = unzip knn_nat_leaf[0] 
     -- 5. have a loop which goes from [0 .. height - 1] which refines
     --    the nearest neighbors
     --
@@ -124,8 +126,7 @@ def main [m] [n] [d] (k: i64) (defppl: i32) (input: [m][d]f32) (queries: [n][d]f
                                                         sorted_query curr_nn_set new_leaves
           in better_nn_set
 
-    let new_knns = scatter (copy init_knns) sorted_query_ind new_knns_sorted -- instead of copy just replicate with 0 and the right size
+    let new_knns = scatter (copy init_knns) sorted_query_ind new_knns_sorted
     let (new_knn_ind, new_knn_dists) = unzip new_knns[0]
 
-    in  (leafs, indir, median_dims, median_vals, sorted_query_leaf, sorted_query, 
-                      sorted_query_ind, new_knn_ind, new_knn_dists)
+    in  (leafs, indir, median_dims, median_vals, shape_arr)
