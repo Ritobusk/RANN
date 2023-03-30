@@ -95,6 +95,7 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
             --- For the shape I just need to 'weave' isT with tmp below
             let tmp = map2 (\shp_val T_val -> shp_val - T_val ) shp_this_lvl new_splits
             let new_shape_ind = iota (nodes_this_lvl << 1)
+            ---!!!! IS THE SHAPE ARRAY THE RIGHT SIZE?
             let new_shape = map (\ind -> if (ind % 2) == 0 then new_splits[ind/2] else tmp[ind/2]) new_shape_ind
 
 
