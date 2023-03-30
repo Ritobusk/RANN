@@ -26,5 +26,12 @@ Make the functions for:
     finding the leaf a point naturally falls into and its path  
     finding the paths that differ by 1.  
     bruteforceing the found paths.  
-
 Ask troels to help with my installation issues for futhark 0.23/ look at it again myself  
+  
+WEEK 7  
+Look at the minor adjustments to treeProcess cosmin talked about (Not too important)  
+Fix the tree-building such that leaves does not nessasarily have the same size.  
+    These trees are build from only knowing the height. computeTreeShape now unnesessary.  
+    I need to have a shape array that says where the leaves starts/stops (See cosmins comments)  
+    Adjust treeProcess so it uses this new tree  
+Alternatively continue on the algorithm.  
