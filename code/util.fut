@@ -121,7 +121,6 @@ def partition3L 't [n] [p]
   let ffs = map (\f -> if f then 0 else 1) mask 
 
   let shp_flag_alt = scatter (copy shp_flag_arr) [0] [true] 
-  ---! ffs_2 Doens not work since the first elem of shp_flag_arr is false
   let ffs_2 = map3  (\f_val is_new_segment segment_Tval ->
                       if is_new_segment then  (f_val + Ts_per_segment[segment_Tval])
                       else f_val
@@ -135,6 +134,43 @@ def partition3L 't [n] [p]
 
   in (r, Ts_per_segment) 
 
+
+def partition3L_b 't [n] [p]
+        (mask : [n]bool) -- mask[i] == True => associated predicate holds on elem i
+        (shp_flag_arr: [n]bool)
+        (scan_shp: [p]i32)
+        (shp : [p]i32, flat_arr : [n]t) -- representation of an irregular array of array
+      : ([n]t, [p]i32) = -- result: the flat array reorganized & splitting point of each segment
+  
+  let tfs = map (\f -> if f then 1 else 0) mask
+  let isT = segmented_scan (+) 0 shp_flag_arr tfs
+  let splits = map (\ind -> isT[ind-1]) scan_shp :> [p]i32
+  -- Since we have many different segments you want to know the indicies of the current segment.
+  --  You therefore add the scaned shape array to the start of each segment of tfs
+  let T_indicies = replicated_iota shp :> [n]i32
+  let exe_scan_shp = [0i32] ++ scan_shp[:(p - 1)] :> [p]i32
+  let isT_segments = 
+        let tfs_at_shp_ind   = map (\ind -> tfs[ind]) exe_scan_shp
+        let tfs_seg_init_val = map2 (+) tfs_at_shp_ind exe_scan_shp 
+        let tfs_with_seg_val = scatter (copy tfs) (map (\i -> i64.i32 i) exe_scan_shp) tfs_seg_init_val
+        in segmented_scan (+) 0 shp_flag_arr tfs_with_seg_val
+  let isT_segments_last_elem = map (\ind -> isT_segments[ind-1]) scan_shp :> [p]i32
+
+  let ffs = map (\f -> if f then 0 else 1) mask 
+
+  let shp_flag_alt = scatter (copy shp_flag_arr) [0] [true] 
+  let ffs_2 = map3  (\f_val is_new_segment segment_Tval ->
+                      if is_new_segment then  (f_val + isT_segments_last_elem[segment_Tval])
+                      else f_val
+                    ) ffs shp_flag_alt T_indicies
+
+  let isF  = segmented_scan (+) 0 shp_flag_arr ffs_2
+  let inds = map3 (\c iT iF -> if c then i64.i32(iT -1)
+                                       else i64.i32(iF -1)
+                  ) mask isT_segments isF
+  let r =  scatter (replicate n flat_arr[0]) inds flat_arr
+
+  in (r, splits) 
 -- ==
 -- compiled input {
 --  [false,true,false,true,false,true,false,true,false,true,false,true]
@@ -148,7 +184,7 @@ def partition3L 't [n] [p]
 let main [m] [n] (mask: [n]bool) (shp: [m]i32) (f_arr : [n]i32) =
   let scan_shp = scan (+) 0 shp
   let shp_flag_arr = (idxs_to_flags shp) :> [n]bool
-  let (new_flat_arr, splits) =  partition3L mask shp_flag_arr scan_shp (shp, f_arr)
+  let (new_flat_arr, splits) =  partition3L_b mask shp_flag_arr scan_shp (shp, f_arr)
   in (new_flat_arr, splits)
 
 
