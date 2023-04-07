@@ -46,26 +46,26 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
     let num_pads = m' - m
     let input' = input ++ (replicate num_pads (replicate d f32.inf)) :> [m'][d]f32
     let indir  = iota32 m'
-    let total_of_nodes = q + (q + 1)
+    let total_nodes = q + (q + 1)
     
     let median_vals = replicate q 0.0f32
     let median_dims = replicate q (-1i32)
-    let shape_arr   = replicate total_of_nodes (i32.i64 m')
+    let shape_arr   = replicate total_nodes (i32.i64 m')
     let ( indir' : *[m']i32
         , median_dims': *[q]i32
         , median_vals': *[q]f32
-        , shape_arr':   *[total_of_nodes]i32 
+        , shape_arr':   *[total_nodes]i32 
         ) =
         loop ( indir  : *[m']i32
                 , median_dims: *[q]i32
                 , median_vals: *[q]f32
-                , shape_arr:   *[total_of_nodes]i32)
+                , shape_arr:   *[total_nodes]i32)
                 for lev < (height + 1) do
 
             let nodes_this_lvl = 1 << i64.i32 lev
-            let average_pts_per_node_at_lvl = m' / nodes_this_lvl
+            let average_pts_per_node_at_lvl = m' / nodes_this_lvl -- Remove when means are doen correctly
 
-            let start_shp = if lev == 0 then 0 else nodes_this_lvl - 1
+            let start_shp = nodes_this_lvl - 1
             let end_shp   = start_shp + nodes_this_lvl
 
             let shp_this_lvl       = shape_arr[start_shp:end_shp] :> [nodes_this_lvl]i32
@@ -75,10 +75,11 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
             -- Dimension to be split for each node at this level 
             let med_dim = lev % (i32.i64 d) 
 
-            -- Values of chosen dimension   
+            -- Values of chosen dimension   rule 2 used (map inside map)
             let chosen_column = map (\ind -> input'[ind, med_dim]) indir 
 
             -- Calculate the median
+            --   use rule 5 instead to calculate means (reduce inside map)
             let shp_flag_arr = idxs_to_flags shp_this_lvl :> [m']bool
             let sums_of_chosen_vals = segmented_scan (+) (0.0f32) shp_flag_arr chosen_column
             let means = map (\ind -> sums_of_chosen_vals[ind-1] / 
@@ -105,7 +106,7 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
             let next_lev_inds = map (+ ((nodes_this_lvl << 1)-1)) (iota (nodes_this_lvl << 1))
             let median_dims' = scatter median_dims this_lev_inds (replicate nodes_this_lvl med_dim)
             let median_vals' = scatter median_vals this_lev_inds medians_this_lvl
-            let shape_arr''  = scatter (copy shape_arr) next_lev_inds new_shape 
+            let shape_arr''  = scatter (copy shape_arr) next_lev_inds new_shape --Consumes indir'' for some reason without copy
             in  (indir'', median_dims', median_vals', shape_arr'')
 
     let input'' = map (\ ind -> map (\k -> input'[ind, k]) (iota32 d) ) indir' :> *[m'][d]f32

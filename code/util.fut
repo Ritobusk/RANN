@@ -76,13 +76,25 @@ def ifilter as p = filter p as
 
 def ones [q] 't (_xs: [q]t) = replicate q 1i32
 
+-- Functions from DPP notes
+def sgmscan 't [n] (op: t->t->t) (ne: t)
+                   (flg : [n]i32) (arr : [n]t) : [n]t =
+  let flgs_vals =
+      scan ( \ (f1, x1) (f2,x2) ->
+              let f = f1 | f2 in
+              if f2 != 0 then (f, x2)
+              else (f, op x1 x2) )
+            (0,ne) (zip flg arr)
+  let (_, vals) = unzip flgs_vals
+  in vals
 
 --- Took these functions from 'Parallel Programming in Futhark' chapter 8
 def segmented_scan 't [n] (g:t->t->t) (ne: t) (flags: [n]bool) (vals: [n]t): [n]t =
   let pairs = scan ( \ (v1,f1) (v2,f2) ->
                        let f = f1 || f2
                        let v = if f2 then v2 else g v1 v2
-                       in (v,f) ) (ne,false) (zip vals flags)
+                       in (v,f) ) 
+                       (ne,false) (zip vals flags)
   let (res,_) = unzip pairs
   in res
 
@@ -122,9 +134,8 @@ def partition3L 't [n] [p]
   --  You therefore add the exclusive scaned shape array elem to the start of each segment of tfs
   let exc_scan_shp = [0i32] ++ scan_shp[:(p - 1)] :> [p]i32
   let isT_segments = 
-        let tfs_at_shp_ind   = map (\ind -> tfs[ind]) exc_scan_shp
-        let tfs_seg_init_val = map2 (+) tfs_at_shp_ind exc_scan_shp 
-        let tfs_with_seg_val = scatter (copy tfs) (map (\i -> i64.i32 i) exc_scan_shp) tfs_seg_init_val
+        let tfs_add_shp   = map (\ind -> tfs[ind] + ind) exc_scan_shp
+        let tfs_with_seg_val = scatter (copy tfs) (map (\i -> i64.i32 i) exc_scan_shp) tfs_add_shp
         in segmented_scan (+) 0 shp_flag_arr tfs_with_seg_val
   let isT_segments_last_elem = map (\ind -> isT_segments[ind-1]) scan_shp :> [p]i32
 
@@ -132,10 +143,10 @@ def partition3L 't [n] [p]
   let shp_flag_alt = scatter (copy shp_flag_arr) [0] [true] 
   -- maybe calculate isT like ffs_add_isTsle
   let T_indicies = replicated_iota shp :> [n]i32
-  let ffs_add_isTsle = map3  (\f_val is_new_segment segment_Tval ->
-                      if is_new_segment then  (f_val + isT_segments_last_elem[segment_Tval])
-                      else f_val
-                    ) ffs shp_flag_alt T_indicies
+  let ffs_add_isTsle = map3 (\f_val is_new_segment segment_Tval ->
+                                if is_new_segment then (f_val + isT_segments_last_elem[segment_Tval])
+                                else f_val
+                            ) ffs shp_flag_alt T_indicies
   let isF  = segmented_scan (+) 0 shp_flag_arr ffs_add_isTsle
 
   let inds = map3 (\c iT iF -> if c then i64.i32(iT -1)
@@ -143,22 +154,6 @@ def partition3L 't [n] [p]
                   ) mask isT_segments isF
   let r =  scatter (replicate n flat_arr[0]) inds flat_arr
   in (r, splits) 
--- ==
--- compiled input {
---  [false,true,false,true,false,true,false,true,false,true,false,true]
---  [3,4,5]
---  [1,2,3,4,5,6,7,8,9,10,11,12]  
--- }
--- output {
--- [2,1,3,4,6,5,7,8,10,12,9,11]
--- [1,2,3] 
---}
-let main [m] [n] (mask: [n]bool) (shp: [m]i32) (f_arr : [n]i32) =
-  let scan_shp = scan (+) 0 shp
-  let shp_flag_arr = (idxs_to_flags shp) :> [n]bool
-  let (new_flat_arr, splits) =  partition3L mask shp_flag_arr scan_shp (shp, f_arr)
-  in (new_flat_arr, splits)
-
 
 def partition3 [ n ] 't 
               ( p : ( t -> bool )) 
@@ -309,3 +304,19 @@ def computeMedianWithRankK [m][n] (ass: [m][n]f32) =
     let A = copy (flatten ass) :> *[N]f32
     let medians = rankSearchBatch means ks shp II1 A
     in medians
+
+-- ==
+-- compiled input {
+--  [false,true,false,true,false,true,false,true,false,true,false,true]
+--  [3,4,5]
+--  [1,2,3,4,5,6,7,8,9,10,11,12]  
+-- }
+-- output {
+-- [2,1,3,4,6,5,7,8,10,12,9,11]
+-- [1,2,3] 
+--}
+let main [m] [n] (mask: [n]bool) (shp: [m]i32) (f_arr : [n]i32) =
+  let scan_shp = scan (+) 0 shp
+  let shp_flag_arr = (idxs_to_flags shp) :> [n]bool
+  let (new_flat_arr, splits) =  partition3L mask shp_flag_arr scan_shp (shp, f_arr)
+  in (new_flat_arr, splits)
