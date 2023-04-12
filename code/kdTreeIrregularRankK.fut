@@ -1,17 +1,5 @@
 import "util"
 
-def iota32 n = (0..1..<i32.i64 n) :> [n]i32
-
-local def closestLog2 (p: i32) : i32 =
-    if p<=1 then 0
-    else let (_,res) = loop (q,r) = (p,0) 
-                       while q > 1 do
-                            (q >> 1, r+1)
-         let err_down = p - (1 << res)
-         let err_upwd = (1 << (res+1)) - p
-         in  if err_down <= err_upwd
-             then res else res+1
-
 -- m: the number of reference points
 -- defppl: the default number of points per leaf
 -- result: (height of tree without leaves, number of points per leaf)
@@ -25,7 +13,6 @@ def computeTreeShape (m: i32) (defppl: i32) : (i32, i32, i32) =
              let num_leaves = 1 << (h+1)
              let ppl = (m + num_leaves - 1) / num_leaves
              in  (h, num_leaves-1, num_leaves*ppl)
-
 
 
 -- height: the height of the tree excluding leaves
@@ -63,7 +50,7 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
                 for lev < (height + 1) do
 
             let nodes_this_lvl = 1 << i64.i32 lev
-            let average_pts_per_node_at_lvl = m' / nodes_this_lvl -- Remove when means are doen correctly
+            --let average_pts_per_node_at_lvl = m' / nodes_this_lvl -- Remove when means are done with max&mins
 
             let start_shp = nodes_this_lvl - 1
             let end_shp   = start_shp + nodes_this_lvl
@@ -80,27 +67,34 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
 
             -- Calculate the median
             --   use rule 5 instead to calculate means (reduce inside map)
-            let shp_flag_arr = idxs_to_flags shp_this_lvl :> [m']bool
-            let sums_of_chosen_vals = segmented_scan (+) (0.0f32) shp_flag_arr chosen_column
-            let means = map (\ind -> sums_of_chosen_vals[ind-1] / 
-                                                    (f32.i64 average_pts_per_node_at_lvl)) scan_shp_this_lvl
+            let shp_flag_arr = mkFlagArray shp_this_lvl (0i32) (replicate nodes_this_lvl 1i32) :> [m']i32
+            let mins_scaned = sgmscan f32.min f32.highest shp_flag_arr chosen_column
+            let maxs_scaned = sgmscan f32.max f32.lowest shp_flag_arr chosen_column
+            let means_2 = map (\ind -> (mins_scaned[ind-1] + maxs_scaned[ind-1])/2.0f32) scan_shp_this_lvl 
+
+            --- Old way
+            --let shp_flag_arr_bool = idxs_to_flags shp_this_lvl :> [m']bool
+            --let sums_of_chosen_vals = sgmscan (+) (0.0f32) shp_flag_arr chosen_column
+            --let means = map (\ind -> sums_of_chosen_vals[ind-1] / 
+            --                                        (f32.i64 average_pts_per_node_at_lvl)) scan_shp_this_lvl
+
             let ks  = map (\s -> s/2) shp_this_lvl
-            let II1 = mkII1 shp_this_lvl :> [m']i32
-            let medians_this_lvl = rankSearchBatch means ks shp_this_lvl II1 (copy chosen_column) 
+            let II1  = scan (+) 0i32 shp_flag_arr
+            let medians_this_lvl = rankSearchBatch means_2 ks shp_this_lvl (copy II1) (copy chosen_column) 
                 -- Got an error when not using copy. Don't know why.
 
             --- Calculate the mask for partition3L
             let medians_for_each_elem = segmented_replicate shp_this_lvl medians_this_lvl :> [m']f32
-            let mask_arr = map2 (\p_val m_val -> p_val < m_val) chosen_column medians_for_each_elem  --- use ii1 to index into medians
+            let mask_arr = map2 (\p_val ind -> p_val < medians_this_lvl[ind - 1]) chosen_column (II1)  --- use ii1 to index into medians
 
             --- Partition to split each node
-            let (indir'', new_splits) = partition3L mask_arr shp_flag_arr scan_shp_this_lvl (shp_this_lvl, indir)
+            --let (indir'', new_splits) = partition3L mask_arr shp_flag_arr_bool scan_shp_this_lvl (shp_this_lvl, indir)
+            let (indir'', new_splits) = partition3L2 mask_arr shp_flag_arr scan_shp_this_lvl (shp_this_lvl, indir)
 
             --- For the shape I just need to 'weave' the shape with tmp below
             let tmp = map2 (\shp_val T_val -> shp_val - T_val ) shp_this_lvl new_splits
             let new_shape_ind = iota (nodes_this_lvl << 1)
             let new_shape = map (\ind -> if (ind % 2) == 0 then new_splits[ind/2] else tmp[ind/2]) new_shape_ind
-
 
             let this_lev_inds = map (+ (nodes_this_lvl-1)) (iota nodes_this_lvl)
             let next_lev_inds = map (+ ((nodes_this_lvl << 1)-1)) (iota (nodes_this_lvl << 1))
@@ -112,9 +106,6 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
     let input'' = map (\ ind -> map (\k -> input'[ind, k]) (iota32 d) ) indir' :> *[m'][d]f32
     in  (input'', indir', median_dims', median_vals', shape_arr')
 
-
-def main0 (m: i32) (defppl: i32) =
-    computeTreeShape m defppl
 
 def main [m] [d] (defppl: i32) (input: [m][d]f32) =
     let (height, num_inner_nodes, m') = computeTreeShape (i32.i64 m) defppl

@@ -77,6 +77,21 @@ def ifilter as p = filter p as
 def ones [q] 't (_xs: [q]t) = replicate q 1i32
 
 -- Functions from DPP notes
+def mkFlagArray 't [m] 
+            (aoa_shp: [m]i32) (zero: t)
+            (aoa_val: [m]t  ) : []t =
+  let shp_scn = scan (+) 0 aoa_shp
+  let aoa_len = shp_scn[m-1]
+  let shp_ind = imap2 aoa_shp (indices aoa_shp)
+                      (\ s i ->
+                         if s==0 then -1i64
+                         else if i==0 then 0i64
+                         else i64.i32 shp_scn[i-1]
+                      )
+  let flags = scatter (replicate (i64.i32 aoa_len) zero)
+                      shp_ind aoa_val
+  in flags
+
 def sgmscan 't [n] (op: t->t->t) (ne: t)
                    (flg : [n]i32) (arr : [n]t) : [n]t =
   let flgs_vals =
@@ -105,7 +120,6 @@ def replicated_iota [n] (reps:[n]i32) : []i32 =
   let flags = map (>0) tmp
   in segmented_scan (+) 0 flags tmp
 
----! changed this to not just work on int32. Will it cause problems?
 def segmented_replicate [n] 't (reps:[n]i32) (vs:[n]t) : []t =
   let idxs = replicated_iota reps
   in map (\i -> vs[i]) idxs
@@ -117,7 +131,37 @@ def idxs_to_flags [n] (is : [n]i32) : []bool =
   in map2 (!=) (vs :> [m]i32) ([0] ++ vs[:m-1] :> [m]i32)
 ---
 
+def partition3L2 't [n] [p]
+        (mask : [n]bool) -- mask[i] == True => associated predicate holds on elem i
+        (shp_flag_arr: [n]i32)
+        (scan_shp: [p]i32)
+        (shp : [p]i32, flat_arr : [n]t) -- representation of an irregular array of array
+      : ([n]t, [p]i32) = -- result: the flat array reorganized & splitting point of each segment
 
+  let tfs = map (\f -> if f then 1 else 0) mask
+  let isT = sgmscan (+) 0 shp_flag_arr tfs
+  let splits = map (\ind -> isT[ind-1]) scan_shp :> [p]i32
+
+  -- Since you have many different segments you want to know the indicies of the current segment.
+  --  You therefore add the exclusive scaned shape array elem to the start of each segment of tfs
+  let exc_scan_shp = [0i64] ++ (map (\i -> i64.i32 i) scan_shp[:(p - 1)]) :> [p]i64
+  let isT_segments = 
+        let tfs_add_shp   = map (\ind -> tfs[ind] + (i32.i64 ind)) exc_scan_shp
+        let tfs_with_seg_val = scatter (copy tfs) (exc_scan_shp) tfs_add_shp
+        in sgmscan (+) 0 shp_flag_arr tfs_with_seg_val
+  let isT_segments_last_elem = map (\ind -> isT_segments[ind-1]) scan_shp :> [p]i32
+
+  let ffs = map (\f -> if f then 0 else 1) mask 
+  let isF_segments =
+    let ffs_add_Ts = map2 (\ind t_val -> ffs[ind] + t_val) exc_scan_shp isT_segments_last_elem
+    let ffs_with_seg_val = scatter (copy ffs) (exc_scan_shp) ffs_add_Ts
+    in sgmscan (+) 0 shp_flag_arr ffs_with_seg_val
+
+  let inds = map3 (\c iT iF -> if c    then i64.i32(iT -1)
+                                       else i64.i32(iF -1)
+                  ) mask isT_segments isF_segments
+  let r =  scatter (replicate n flat_arr[0]) inds flat_arr
+  in (r, splits) 
 
 def partition3L 't [n] [p]
         (mask : [n]bool) -- mask[i] == True => associated predicate holds on elem i
@@ -134,7 +178,7 @@ def partition3L 't [n] [p]
   --  You therefore add the exclusive scaned shape array elem to the start of each segment of tfs
   let exc_scan_shp = [0i32] ++ scan_shp[:(p - 1)] :> [p]i32
   let isT_segments = 
-        let tfs_add_shp   = map (\ind -> tfs[ind] + ind) exc_scan_shp
+        let tfs_add_shp      = map (\ind -> tfs[ind] + ind) exc_scan_shp
         let tfs_with_seg_val = scatter (copy tfs) (map (\i -> i64.i32 i) exc_scan_shp) tfs_add_shp
         in segmented_scan (+) 0 shp_flag_arr tfs_with_seg_val
   let isT_segments_last_elem = map (\ind -> isT_segments[ind-1]) scan_shp :> [p]i32
@@ -171,20 +215,6 @@ def partition3 [ n ] 't
     in (r , i )
 
 
-let mkFlagArray 't [m] 
-            (aoa_shp: [m]i32) (zero: t)
-            (aoa_val: [m]t  ) : []t =
-  let shp_scn = scan (+) 0 aoa_shp
-  let aoa_len = shp_scn[m-1]
-  let shp_ind = imap2 aoa_shp (indices aoa_shp)
-                      (\ s i ->
-                         if s==0 then -1i64
-                         else if i==0 then 0i64
-                         else i64.i32 shp_scn[i-1]
-                      )
-  let flags = scatter (replicate (i64.i32 aoa_len) zero)
-                      shp_ind aoa_val
-  in flags
 
 let mkII1 [m] (shp: [m]i32) : *[]i32 =
     let flags = mkFlagArray shp 0i8 (replicate m 1i8)

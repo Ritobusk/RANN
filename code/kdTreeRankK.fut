@@ -1,6 +1,5 @@
 import "util"
 
-
 local def closestLog2 (p: i32) : i32 =
     if p<=1 then 0
     else let (_,res) = loop (q,r) = (p,0) 
@@ -22,7 +21,6 @@ def computeTreeShape (m: i32) (defppl: i32) : (i32, i32, i32, i32) =
          let num_leaves = 1 << (h+1)
          let ppl = (m + num_leaves - 1) / num_leaves
          in  (h, num_leaves-1, ppl, num_leaves*ppl)
-
 
 
 -- height: the height of the tree excluding leaves
@@ -92,7 +90,6 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
 
     let input'' = map (\ ind -> map (\k -> input'[ind, k]) (iota32 d) ) indir' :> *[m'][d]f32
     in  (input'', indir', median_dims', median_vals')
-
 
 def main0 (m: i32) (defppl: i32) =
     computeTreeShape m defppl
