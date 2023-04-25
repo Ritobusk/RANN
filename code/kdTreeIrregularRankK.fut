@@ -50,16 +50,12 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
                 for lev < (height + 1) do
 
             let nodes_this_lvl = 1 << i64.i32 lev
-            --let average_pts_per_node_at_lvl = m' / nodes_this_lvl -- Remove when means are done with max&mins
 
             let start_shp = nodes_this_lvl - 1
             let end_shp   = start_shp + nodes_this_lvl
-
             let shp_this_lvl       = shape_arr[start_shp:end_shp] :> [nodes_this_lvl]i32
             let scan_shp_this_lvl  = scan (+) 0 shp_this_lvl  
 
-
-            -- Dimension to be split for each node at this level 
             let med_dim = lev % (i32.i64 d) 
 
             -- Values of chosen dimension   rule 2 used (map inside map)
@@ -68,27 +64,20 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
             -- Calculate the median
             --   use rule 5 instead to calculate means (reduce inside map)
             let shp_flag_arr = mkFlagArray shp_this_lvl (0i32) (replicate nodes_this_lvl 1i32) :> [m']i32
-            let mins_scaned = sgmscan f32.min f32.highest shp_flag_arr chosen_column
-            let maxs_scaned = sgmscan f32.max f32.lowest shp_flag_arr chosen_column
-            let means_2 = map (\ind -> (mins_scaned[ind-1] + maxs_scaned[ind-1])/2.0f32) scan_shp_this_lvl 
-
-            --- Old way
-            --let shp_flag_arr_bool = idxs_to_flags shp_this_lvl :> [m']bool
-            --let sums_of_chosen_vals = sgmscan (+) (0.0f32) shp_flag_arr chosen_column
-            --let means = map (\ind -> sums_of_chosen_vals[ind-1] / 
-            --                                        (f32.i64 average_pts_per_node_at_lvl)) scan_shp_this_lvl
+            let mins = sgmscan f32.min f32.highest shp_flag_arr chosen_column
+            let maxs = sgmscan f32.max f32.lowest shp_flag_arr chosen_column
+            let means = map (\ind -> if ind == 0 then 0
+                                     else (mins[ind-1] + maxs[ind-1])/2.0f32 ) scan_shp_this_lvl 
 
             let ks  = map (\s -> s/2) shp_this_lvl
             let II1  = scan (+) 0i32 shp_flag_arr
-            let medians_this_lvl = rankSearchBatch means_2 ks shp_this_lvl (copy II1) (copy chosen_column) 
-                -- Got an error when not using copy. Don't know why.
+            let medians_this_lvl = rankSearchBatch means ks shp_this_lvl (copy II1) (copy chosen_column) 
+                -- Got an error when not using copy. rankSearchBatch consumes II1 and chosen_colum
 
             --- Calculate the mask for partition3L
-            let medians_for_each_elem = segmented_replicate shp_this_lvl medians_this_lvl :> [m']f32
-            let mask_arr = map2 (\p_val ind -> p_val < medians_this_lvl[ind - 1]) chosen_column (II1)  --- use ii1 to index into medians
+            let mask_arr = map2 (\p_val ind -> p_val < medians_this_lvl[ind - 1]) chosen_column II1  --- use ii1 to index into medians
 
             --- Partition to split each node
-            --let (indir'', new_splits) = partition3L mask_arr shp_flag_arr_bool scan_shp_this_lvl (shp_this_lvl, indir)
             let (indir'', new_splits) = partition3L2 mask_arr shp_flag_arr scan_shp_this_lvl (shp_this_lvl, indir)
 
             --- For the shape I just need to 'weave' the shape with tmp below
@@ -107,8 +96,18 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
     in  (input'', indir', median_dims', median_vals', shape_arr')
 
 
+
+def main3 [m] [d] (defppl: i32) (input: [m][d]f32) =
+    computeTreeShape (i32.i64 m) defppl
+    
+
 def main [m] [d] (defppl: i32) (input: [m][d]f32) =
     let (height, num_inner_nodes, m') = computeTreeShape (i32.i64 m) defppl
+    let h = defppl
+    let nin = (1 << h) - 1
+    let mprime = if (m % 2 == 0)then  m
+                                else i64.i32 (1 << ((log2 (i32.i64 m)) + 1))
     let (leafs, indir, median_dims, median_vals, shp_arr) =
         mkKDtree height (i64.i32 num_inner_nodes) (i64.i32 m') input
-    in  (leafs, indir, median_dims, median_vals, shp_arr, num_inner_nodes, m')
+        --mkKDtree (h) (i64.i32 nin) (mprime) input
+    in  (leafs, indir, median_dims, median_vals, shp_arr, h, nin ,mprime)

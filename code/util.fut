@@ -120,15 +120,7 @@ def replicated_iota [n] (reps:[n]i32) : []i32 =
   let flags = map (>0) tmp
   in segmented_scan (+) 0 flags tmp
 
-def segmented_replicate [n] 't (reps:[n]i32) (vs:[n]t) : []t =
-  let idxs = replicated_iota reps
-  in map (\i -> vs[i]) idxs
 
-
-def idxs_to_flags [n] (is : [n]i32) : []bool =
-  let vs = segmented_replicate is (iota32 n)
-  let m = length vs
-  in map2 (!=) (vs :> [m]i32) ([0] ++ vs[:m-1] :> [m]i32)
 ---
 
 def partition3L2 't [n] [p]
@@ -146,16 +138,16 @@ def partition3L2 't [n] [p]
   --  You therefore add the exclusive scaned shape array elem to the start of each segment of tfs
   let exc_scan_shp = [0i64] ++ (map (\i -> i64.i32 i) scan_shp[:(p - 1)]) :> [p]i64
   let isT_segments = 
-        let tfs_add_shp   = map (\ind -> tfs[ind] + (i32.i64 ind)) exc_scan_shp
-        let tfs_with_seg_val = scatter (copy tfs) (exc_scan_shp) tfs_add_shp
-        in sgmscan (+) 0 shp_flag_arr tfs_with_seg_val
+      let tfs_add_shp      = map (\ind -> tfs[ind] + (i32.i64 ind)) exc_scan_shp
+      let tfs_with_seg_val = scatter (copy tfs) (exc_scan_shp) tfs_add_shp
+      in sgmscan (+) 0 shp_flag_arr tfs_with_seg_val
   let isT_segments_last_elem = map (\ind -> isT_segments[ind-1]) scan_shp :> [p]i32
 
   let ffs = map (\f -> if f then 0 else 1) mask 
   let isF_segments =
-    let ffs_add_Ts = map2 (\ind t_val -> ffs[ind] + t_val) exc_scan_shp isT_segments_last_elem
-    let ffs_with_seg_val = scatter (copy ffs) (exc_scan_shp) ffs_add_Ts
-    in sgmscan (+) 0 shp_flag_arr ffs_with_seg_val
+      let ffs_add_Ts       = map2 (\ind t_val -> ffs[ind] + t_val) exc_scan_shp isT_segments_last_elem
+      let ffs_with_seg_val = scatter (copy ffs) (exc_scan_shp) ffs_add_Ts
+      in sgmscan (+) 0 shp_flag_arr ffs_with_seg_val
 
   let inds = map3 (\c iT iF -> if c    then i64.i32(iT -1)
                                        else i64.i32(iF -1)
@@ -345,8 +337,8 @@ def computeMedianWithRankK [m][n] (ass: [m][n]f32) =
 -- [2,1,3,4,6,5,7,8,10,12,9,11]
 -- [1,2,3] 
 --}
-let main [m] [n] (mask: [n]bool) (shp: [m]i32) (f_arr : [n]i32) =
-  let scan_shp = scan (+) 0 shp
-  let shp_flag_arr = (idxs_to_flags shp) :> [n]bool
-  let (new_flat_arr, splits) =  partition3L mask shp_flag_arr scan_shp (shp, f_arr)
-  in (new_flat_arr, splits)
+--let main [m] [n] (mask: [n]bool) (shp: [m]i32) (f_arr : [n]i32) =
+--  let scan_shp = scan (+) 0 shp
+--  let shp_flag_arr = (mkFlagArray shp (replicate m 1i32)) :> [n]i32
+--  let (new_flat_arr, splits) =  partition3L2 mask shp_flag_arr scan_shp (shp, f_arr)
+--  in (new_flat_arr, splits)

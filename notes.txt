@@ -77,3 +77,9 @@ IMPORTANT: The data that is used to build the tree is seperate from the queries 
 
 I should also modify the med_dims so that it goes like this e.g. [0,1,2,0,1] if d = 3 and height = 5
 instead of [0,1,2,2,2] like it is now.
+
+
+Do you need to pad anymore now that the data is flat? Since the shape defines how the tree looks, and it can handle 
+        a node with e.g. 1 point in it by splitting it into a node with 0 points and a node with 1 point.
+
+Also I get an error when handling a node with no points inside it.

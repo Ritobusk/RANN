@@ -4,7 +4,7 @@
 
 -- output @ LocVolCalib-data/small.out
 
-import "kdTreeRankK"
+import "kdTreeIrregularRankK"
 import "lib/github.com/diku-dk/sorts/radix_sort"
 
 def sumSqrsSeq [d] (xs: [d]f32) (ys: [d]f32) : f32 =
@@ -79,10 +79,10 @@ def log2Int (n : i64) : i32 =
 def main [m] [n] [d] (k: i64) (defppl: i32) (input: [m][d]f32) (queries: [n][d]f32) =
     let init_knns = replicate n (replicate k (-1i32, f32.inf))
     --- Build tree (height is "0-indexed")
-    let (height, num_inner_nodes, _, m') = computeTreeShape (i32.i64 m) defppl
+    let (height, num_inner_nodes, m') = computeTreeShape (i32.i64 m) defppl
     let m'64 = i64.i32 m'
     let defppl64 = i64.i32 defppl
-    let (leafs, indir, median_dims, median_vals) =
+    let (leafs, indir, median_dims, median_vals, shape_arr) =
             mkKDtree height (i64.i32 num_inner_nodes) (m'64) input
     let num_leafs = length leafs
 
