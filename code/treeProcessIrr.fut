@@ -86,6 +86,14 @@ def main [m] [n] [d] (k: i64) (defppl: i32) (input: [m][d]f32) (queries: [n][d]f
             mkKDtree height (i64.i32 num_inner_nodes) (m'64) input
     let num_leafs = length leafs
 
+    let leaves_shp = 
+        let beg = i64.i32 (1 << (height + 1)) - 1
+        let end = beg + (i64.i32 (1 << (height + 1)))
+        in shape_arr[beg:end]
+    let scInc_leaves_shp = scan (+) 0i32 leaves_shp |> map (i64.i32)
+    let scExc_leaves_shp = [0i64] ++ (scInc_leaves_shp[:((length leaves_shp) - 1 )]) :> []i64
+
+
     -- 2. Find the leaf to which each query "naturally" belongs
     --    If your set of querries is named `querries` this is
     --    achieved with a map:
@@ -105,9 +113,11 @@ def main [m] [n] [d] (k: i64) (defppl: i32) (input: [m][d]f32) (queries: [n][d]f
     let leafs_with_ind = zip indir leafs
     let leafs2d = unflatten (m'64 / defppl64) defppl64 leafs_with_ind
 
-    -- For flat: use values in sorted_query_leaf to index into scanned shape array. Use that to "slice" the leafs correctly
-    let knn_nat_leaf = map3 (\q q_ind l_ind -> bruteForce q init_knns[q_ind] leafs2d[l_ind] ) 
-                                                              sorted_query sorted_query_ind sorted_query_leaf
+    -- Using values in sorted_query_leaf to index into scanned shape array.
+    --   The values are used to "slice" the leaves correctly
+    let knn_nat_leaf = map3 (\q q_ind l_ind -> bruteForce q init_knns[q_ind] 
+                                                leafs_with_ind[scExc_leaves_shp[l_ind]:scInc_leaves_shp[l_ind]]
+                            ) sorted_query sorted_query_ind sorted_query_leaf
 
     -- 5. have a loop which goes from [0 .. height - 1] which refines
     --    the nearest neighbors
@@ -120,12 +130,12 @@ def main [m] [n] [d] (k: i64) (defppl: i32) (input: [m][d]f32) (queries: [n][d]f
     let new_knns_sorted =
       loop (curr_nn_set) = (knn_nat_leaf) for i < (i64.i32 height + 1) do
           let new_leaves = map (\l_num -> reverseBit l_num i) sorted_query_leaf
-          let better_nn_set = map3 (\q q_knn l_ind -> bruteForce q q_knn leafs2d[l_ind])
-                                                        sorted_query curr_nn_set new_leaves
+          let better_nn_set = map3  (\q q_knn l_ind -> bruteForce q q_knn 
+                                                        leafs_with_ind[scExc_leaves_shp[l_ind]:scInc_leaves_shp[l_ind]]
+                                    ) sorted_query curr_nn_set new_leaves
           in better_nn_set
 
-    let new_knns = scatter (copy init_knns) sorted_query_ind new_knns_sorted -- instead of copy just replicate with 0 and the right size
+    let new_knns = scatter (init_knns) sorted_query_ind new_knns_sorted -- instead of copy just replicate with 0 and the right size
     let (new_knn_ind, new_knn_dists) = unzip new_knns[0]
 
-    in  (leafs, indir, median_dims, median_vals, sorted_query_leaf, sorted_query, 
-                      sorted_query_ind, new_knn_ind, new_knn_dists)
+    in  (leafs, indir, median_vals, sorted_query_ind, new_knn_ind, new_knn_dists, leaves_shp)

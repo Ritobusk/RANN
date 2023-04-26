@@ -124,8 +124,8 @@ def main [m] [n] [d] (k: i64) (defppl: i32) (input: [m][d]f32) (queries: [n][d]f
                                                         sorted_query curr_nn_set new_leaves
           in better_nn_set
 
-    let new_knns = scatter (copy init_knns) sorted_query_ind new_knns_sorted -- instead of copy just replicate with 0 and the right size
+    let new_knns = scatter (init_knns) sorted_query_ind new_knns_sorted -- instead of copy just replicate with 0 and the right size
     let (new_knn_ind, new_knn_dists) = unzip new_knns[0]
 
-    in  (leafs, indir, median_dims, median_vals, sorted_query_leaf, sorted_query, 
+    in  (leafs, indir, median_vals, sorted_query, 
                       sorted_query_ind, new_knn_ind, new_knn_dists)
