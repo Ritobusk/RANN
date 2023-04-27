@@ -80,16 +80,16 @@ def main [m] [n] [d] (k: i64) (defppl: i32) (input: [m][d]f32) (queries: [n][d]f
     let init_knns = replicate n (replicate k (-1i32, f32.inf))
     --- Build tree (height is "0-indexed")
     let (height, num_inner_nodes, m') = computeTreeShape (i32.i64 m) defppl
-    let m'64 = i64.i32 m'
+    --let m'64 = i64.i32 m'
     let defppl64 = i64.i32 defppl
     let (leafs, indir, median_dims, median_vals, shape_arr) =
-            mkKDtree height (i64.i32 num_inner_nodes) (m'64) input
+            mkKDtree height (i64.i32 num_inner_nodes) (m) input
     let num_leafs = length leafs
 
     let leaves_shp = 
-        let beg = i64.i32 (1 << (height + 1)) - 1
-        let end = beg + (i64.i32 (1 << (height + 1)))
-        in shape_arr[beg:end]
+      let beg = i64.i32 (1 << (height + 1)) - 1
+      let end = beg + (i64.i32 (1 << (height + 1)))
+      in shape_arr[beg:end]
     let scInc_leaves_shp = scan (+) 0i32 leaves_shp |> map (i64.i32)
     let scExc_leaves_shp = [0i64] ++ (scInc_leaves_shp[:((length leaves_shp) - 1 )]) :> []i64
 
@@ -111,7 +111,6 @@ def main [m] [n] [d] (k: i64) (defppl: i32) (input: [m][d]f32) (queries: [n][d]f
 
     -- 4. for each querry compute its knns from its own leaf
     let leafs_with_ind = zip indir leafs
-    let leafs2d = unflatten (m'64 / defppl64) defppl64 leafs_with_ind
 
     -- Using values in sorted_query_leaf to index into scanned shape array.
     --   The values are used to "slice" the leaves correctly
@@ -121,12 +120,7 @@ def main [m] [n] [d] (k: i64) (defppl: i32) (input: [m][d]f32) (queries: [n][d]f
 
     -- 5. have a loop which goes from [0 .. height - 1] which refines
     --    the nearest neighbors
-    --
-    -- loop (curr_nn_set) = (init2_knns) for i < height do
-    --     let new_leaves = map (reverseBit i) leaf_numbers
-    --     let better_nn_set = map3 bruteForce querries curr_nn_set new_leaves 
-    --     in  better_nn_set
-
+    
     let new_knns_sorted =
       loop (curr_nn_set) = (knn_nat_leaf) for i < (i64.i32 height + 1) do
           let new_leaves = map (\l_num -> reverseBit l_num i) sorted_query_leaf
