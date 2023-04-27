@@ -110,8 +110,8 @@ def pseudoRandomOrthogonalTransformation [n] [d] (t: i32) (points : [n][d]f32) :
     in map (\p ->  Theta p  permutations_P rndQ_normalized2d M1 M2) points'
 
 
-let main [n][d] (Tval: i64) (points : [n][d]f32) : [][n][d]f32 =
-    map (\t ->
+let main [n][d] (Tval: i64) (points : [n][d]f32) = --: [][n][d]f32 =
+    let (rm,am,bm) =map (\t ->
             let t = i32.i64 ((t+1) * 4)
             let M1 =  d / 2
             let M2 = M1
@@ -131,5 +131,9 @@ let main [n][d] (Tval: i64) (points : [n][d]f32) : [][n][d]f32 =
             let rand_numbers_Q_normalized2pi = map (\num -> (f32.f64 (((f64.u32 num) / (f64.u32 4294967295)) * (2*real.pi) ))) rand_numbers_Q
             let rndQ_normalized2d = unflatten (M1+M2) (d-1) rand_numbers_Q_normalized2pi
 
-            in map (\p ->  Theta p  permutations_P rndQ_normalized2d M1 M2) points'
-        ) (iota Tval)
+            let r = map (\p ->  Theta p  permutations_P rndQ_normalized2d M1 M2) points'
+            let a = map2 (-) points[0] points[1] 
+            let b = map2 (-) points[0] points[1] 
+            in (r , a, b) 
+        ) (iota Tval) |> unzip3
+    in (rm,am,bm)
