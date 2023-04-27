@@ -70,7 +70,13 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
                                      else (mins[ind-1] + maxs[ind-1])/2.0f32 ) scan_shp_this_lvl 
 
             let ks  = map (\s -> s/2) shp_this_lvl
-            let II1  = scan (+) 0i32 shp_flag_arr
+            -- let II1  = scan (+) 0i32 shp_flag_arr
+            -- Correct computation of II1 in the presence of zero shape is:
+            let flag_iotap1 = (indices shp_this_lvl
+                           |> map i32.i64
+                           |> map (+1)
+                           |> mkFlagArray shp_this_lvl (0i32)) :> [m']i32
+            let II1 = sgmscan (+) 0 flag_iotap1 flag_iotap1
             let medians_this_lvl = rankSearchBatch means ks shp_this_lvl (copy II1) (copy chosen_column) 
                 -- Got an error when not using copy. rankSearchBatch consumes II1 and chosen_colum
 
