@@ -78,10 +78,9 @@ def log2Int (n : i64) : i32 =
 --
 def main [m] [n] [d] (k: i64) (defppl: i32) (input: [m][d]f32) (queries: [n][d]f32) =
     let init_knns = replicate n (replicate k (-1i32, f32.inf))
-    --- Build tree (height is "0-indexed")
+    --- Build tree (height is without the leaf "level")
     let (height, num_inner_nodes, m') = computeTreeShape (i32.i64 m) defppl
     --let m'64 = i64.i32 m'
-    let defppl64 = i64.i32 defppl
     let (leafs, indir, median_dims, median_vals, shape_arr) =
             mkKDtree height (i64.i32 num_inner_nodes) (m) input
     let num_leafs = length leafs
@@ -97,7 +96,6 @@ def main [m] [n] [d] (k: i64) (defppl: i32) (input: [m][d]f32) (queries: [n][d]f
     -- 2. Find the leaf to which each query "naturally" belongs
     --    If your set of querries is named `querries` this is
     --    achieved with a map:
-    --      `let leaf_inds = map (findLeaf kdtree) querries`
     let queries_init_leafs = map (findLeaf median_dims median_vals height) queries
 
     -- 3. sort `(zip querries leaf_inds)` in increasing order of
@@ -120,7 +118,6 @@ def main [m] [n] [d] (k: i64) (defppl: i32) (input: [m][d]f32) (queries: [n][d]f
 
     -- 5. have a loop which goes from [0 .. height - 1] which refines
     --    the nearest neighbors
-    
     let new_knns_sorted =
       loop (curr_nn_set) = (knn_nat_leaf) for i < (i64.i32 height + 1) do
           let new_leaves = map (\l_num -> reverseBit l_num i) sorted_query_leaf

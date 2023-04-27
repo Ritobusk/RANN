@@ -75,7 +75,8 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
                 -- Got an error when not using copy. rankSearchBatch consumes II1 and chosen_colum
 
             --- Calculate the mask for partition3L
-            let mask_arr = map2 (\p_val ind -> p_val < medians_this_lvl[ind - 1]) chosen_column II1  --- use ii1 to index into medians
+            ---   using ii1 to index into medians
+            let mask_arr = map2 (\p_val ind -> p_val < medians_this_lvl[ind - 1]) chosen_column II1  
 
             --- Partition to split each node
             let (indir'', new_splits) = partition3L2 mask_arr shp_flag_arr scan_shp_this_lvl (shp_this_lvl, indir)
@@ -97,8 +98,8 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
 
 
 
-def main3 [m] [d] (defppl: i32) (input: [m][d]f32) =
-    computeTreeShape (i32.i64 m) defppl
+--def main3 [m] [d] (defppl: i32) (input: [m][d]f32) =
+--    computeTreeShape (i32.i64 m) defppl
     
 
 def main [m] [d] (defppl: i32) (input: [m][d]f32) =
