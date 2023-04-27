@@ -53,8 +53,8 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
 
             let start_shp = nodes_this_lvl - 1
             let end_shp   = start_shp + nodes_this_lvl
-            let shp_this_lvl       = shape_arr[start_shp:end_shp] :> [nodes_this_lvl]i32
-            let scan_shp_this_lvl  = scan (+) 0 shp_this_lvl  
+            let shp_this_lvl       = trace ( shape_arr[start_shp:end_shp]) :> [nodes_this_lvl]i32
+            let scan_shp_this_lvl  = trace( scan (+) 0 shp_this_lvl  )
 
             let med_dim = lev % (i32.i64 d) 
 
@@ -63,7 +63,7 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
 
             -- Calculate the median
             --   use rule 5 instead to calculate means (reduce inside map)
-            let shp_flag_arr = mkFlagArray shp_this_lvl (0i32) (replicate nodes_this_lvl 1i32) :> [m']i32
+            let shp_flag_arr =  mkFlagArray shp_this_lvl (0i32) (replicate nodes_this_lvl 1i32) :> [m']i32
             let mins = sgmscan f32.min f32.highest shp_flag_arr chosen_column
             let maxs = sgmscan f32.max f32.lowest shp_flag_arr chosen_column
             let means = map (\ind -> if ind == 0 then 0
@@ -72,7 +72,7 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
             let ks  = map (\s -> s/2) shp_this_lvl
             -- let II1  = scan (+) 0i32 shp_flag_arr
             -- Correct computation of II1 in the presence of zero shape is:
-            let flag_iotap1 = (indices shp_this_lvl
+            let flag_iotap1 = ( (indices shp_this_lvl)
                            |> map i32.i64
                            |> map (+1)
                            |> mkFlagArray shp_this_lvl (0i32)) :> [m']i32
@@ -82,7 +82,7 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
 
             --- Calculate the mask for partition3L
             ---   using ii1 to index into medians
-            let mask_arr = map2 (\p_val ind -> p_val < medians_this_lvl[ind - 1]) chosen_column II1  
+            let mask_arr = map2 (\p_val ind -> p_val < medians_this_lvl[ind - 1]) chosen_column II1
 
             --- Partition to split each node
             let (indir'', new_splits) = partition3L2 mask_arr shp_flag_arr scan_shp_this_lvl (shp_this_lvl, indir)
