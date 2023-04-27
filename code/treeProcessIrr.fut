@@ -79,11 +79,10 @@ def log2Int (n : i64) : i32 =
 def main [m] [n] [d] (k: i64) (defppl: i32) (input: [m][d]f32) (queries: [n][d]f32) =
     let init_knns = replicate n (replicate k (-1i32, f32.inf))
     --- Build tree (height is without the leaf "level")
-    let (height, num_inner_nodes, m') = computeTreeShape (i32.i64 m) defppl
+    let (height, num_inner_nodes, _) = computeTreeShape (i32.i64 m) defppl
     --let m'64 = i64.i32 m'
     let (leafs, indir, median_dims, median_vals, shape_arr) =
             mkKDtree height (i64.i32 num_inner_nodes) (m) input
-    let num_leafs = length leafs
 
     let leaves_shp = 
       let beg = i64.i32 (1 << (height + 1)) - 1
@@ -103,7 +102,7 @@ def main [m] [n] [d] (k: i64) (defppl: i32) (input: [m][d]f32) (queries: [n][d]f
     let (sorted_query_with_ind, sorted_query_leaf) = 
       let q_with_ind = zip queries (iota n) 
       let q_ind_with_leaf = zip q_with_ind queries_init_leafs
-      in (radix_sort_int_by_key (\(_,l) -> l) (log2Int num_leafs) i64.get_bit q_ind_with_leaf) |> unzip
+      in (radix_sort_int_by_key (\(_,l) -> l) (log2Int (length leafs)) i64.get_bit q_ind_with_leaf) |> unzip
     
     let (sorted_query, sorted_query_ind) = unzip sorted_query_with_ind 
 

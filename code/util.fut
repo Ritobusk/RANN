@@ -103,26 +103,6 @@ def sgmscan 't [n] (op: t->t->t) (ne: t)
   let (_, vals) = unzip flgs_vals
   in vals
 
---- Took these functions from 'Parallel Programming in Futhark' chapter 8
-def segmented_scan 't [n] (g:t->t->t) (ne: t) (flags: [n]bool) (vals: [n]t): [n]t =
-  let pairs = scan ( \ (v1,f1) (v2,f2) ->
-                       let f = f1 || f2
-                       let v = if f2 then v2 else g v1 v2
-                       in (v,f) ) 
-                       (ne,false) (zip vals flags)
-  let (res,_) = unzip pairs
-  in res
-
-def replicated_iota [n] (reps:[n]i32) : []i32 =
-  let s1 = scan (+) 0 reps
-  let s2 = map (\i -> if i==0 then 0 else (i64.i32 s1[i-1])) (iota n)
-  let tmp = scatter (replicate (i64.i32(reduce (+) 0 reps)) 0) (s2) (iota32 n) -- replace reduce with last elem of s1
-  let flags = map (>0) tmp
-  in segmented_scan (+) 0 flags tmp
-
-
----
-
 def partition3L2 't [n] [p]
         (mask : [n]bool) -- mask[i] == True => associated predicate holds on elem i
         (shp_flag_arr: [n]i32)
@@ -155,41 +135,6 @@ def partition3L2 't [n] [p]
   let r =  scatter (replicate n flat_arr[0]) inds flat_arr
   in (r, splits) 
 
-def partition3L 't [n] [p]
-        (mask : [n]bool) -- mask[i] == True => associated predicate holds on elem i
-        (shp_flag_arr: [n]bool)
-        (scan_shp: [p]i32)
-        (shp : [p]i32, flat_arr : [n]t) -- representation of an irregular array of array
-      : ([n]t, [p]i32) = -- result: the flat array reorganized & splitting point of each segment
-  
-  let tfs = map (\f -> if f then 1 else 0) mask
-  let isT = segmented_scan (+) 0 shp_flag_arr tfs
-  let splits = map (\ind -> isT[ind-1]) scan_shp :> [p]i32
-
-  -- Since you have many different segments you want to know the indicies of the current segment.
-  --  You therefore add the exclusive scaned shape array elem to the start of each segment of tfs
-  let exc_scan_shp = [0i32] ++ scan_shp[:(p - 1)] :> [p]i32
-  let isT_segments = 
-        let tfs_add_shp      = map (\ind -> tfs[ind] + ind) exc_scan_shp
-        let tfs_with_seg_val = scatter (copy tfs) (map (\i -> i64.i32 i) exc_scan_shp) tfs_add_shp
-        in segmented_scan (+) 0 shp_flag_arr tfs_with_seg_val
-  let isT_segments_last_elem = map (\ind -> isT_segments[ind-1]) scan_shp :> [p]i32
-
-  let ffs = map (\f -> if f then 0 else 1) mask 
-  let shp_flag_alt = scatter (copy shp_flag_arr) [0] [true] 
-  -- maybe calculate isT like ffs_add_isTsle
-  let T_indicies = replicated_iota shp :> [n]i32
-  let ffs_add_isTsle = map3 (\f_val is_new_segment segment_Tval ->
-                                if is_new_segment then (f_val + isT_segments_last_elem[segment_Tval])
-                                else f_val
-                            ) ffs shp_flag_alt T_indicies
-  let isF  = segmented_scan (+) 0 shp_flag_arr ffs_add_isTsle
-
-  let inds = map3 (\c iT iF -> if c then i64.i32(iT -1)
-                                       else i64.i32(iF -1)
-                  ) mask isT_segments isF
-  let r =  scatter (replicate n flat_arr[0]) inds flat_arr
-  in (r, splits) 
 
 def partition3 [ n ] 't 
               ( p : ( t -> bool )) 
