@@ -112,16 +112,23 @@ def partition3L2 't [n] [p]
 
   let tfs = map (\f -> if f then 1 else 0) mask
   let isT = sgmscan (+) 0 shp_flag_arr tfs
-  let splits = map (\ind -> isT[ind-1]) scan_shp :> [p]i32
+  let splits = map2 (\s off -> if s == 0 then 0 else isT[off-1]) shp scan_shp :> [p]i32
 
   -- Since you have many different segments you want to know the indicies of the current segment.
   --  You therefore add the exclusive scaned shape array elem to the start of each segment of tfs
-  let exc_scan_shp = [0i64] ++ (map (\i -> i64.i32 i) scan_shp[:(p - 1)]) :> [p]i64
+  
+  --- Maybe the duplicates are okay? Since they will try to write the same value to the same indice (in tfs_with_seg_val)---
+  
+  let exc_scan_shp = ( [0i64] ++ (map (\i -> i64.i32 i) scan_shp[:(p - 1)]) ) :> [p]i64
+  let shifted_shp  = ( [0i32] ++ shp[:(p - 1)] ) :> [p]i32
+  let rmv_dup_exc_shp_tmp = map2 (\s off -> if s == 0 then -1 else off) shifted_shp exc_scan_shp
+  let rmv_dup_exc_shp = scatter (rmv_dup_exc_shp_tmp) [0] [0i64]
   let isT_segments = 
       let tfs_add_shp      = map (\ind -> tfs[ind] + (i32.i64 ind)) exc_scan_shp
-      let tfs_with_seg_val = scatter (copy tfs) (exc_scan_shp) tfs_add_shp
+      let tfs_with_seg_val = scatter (copy tfs) (rmv_dup_exc_shp) tfs_add_shp
       in sgmscan (+) 0 shp_flag_arr tfs_with_seg_val
-  let isT_segments_last_elem = map (\ind -> isT_segments[ind-1]) scan_shp :> [p]i32
+  -- I think there's something wrong with the -1
+  let isT_segments_last_elem = map2 (\s ind -> if s == 0 then -1 else isT_segments[ind-1]) shp scan_shp :> [p]i32
 
   let ffs = map (\f -> if f then 0 else 1) mask 
   let isF_segments =

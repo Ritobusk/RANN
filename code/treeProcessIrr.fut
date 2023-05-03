@@ -11,7 +11,12 @@ def sumSqrsSeq [d] (xs: [d]f32) (ys: [d]f32) : f32 =
     loop (res) = (0.0f32) for (x,y) in (zip xs ys) do
         let z = x-y in res + z*z
 
--- Bruteforce knn that returns 
+-- Bruteforce knn:
+--    MAYBE: bruteforce should exit if it encounters a point it has seen before
+--     This is for when the algorithm is run where the points are rotated with different rnd vals
+--     since some of the points that will be compared might be the same.
+--     Solution1: save knns on each loop of step 2-5. And search these in step 6
+--     Solution2: Do not update when a point that is already in the knn is encounter (when refs[i].0 is in one knn[j].0) 
 def bruteForce [m][d][k] (query: [d]f32) 
                          (knns0: [k](i32,f32))
                          (refs: [m](i32,[d]f32))
@@ -19,7 +24,7 @@ def bruteForce [m][d][k] (query: [d]f32)
     loop (knns) = (copy knns0)
       for i < i32.i64 m do
         let dist = sumSqrsSeq query (refs[i].1) in
-        if dist >= knns[k-1].1 then knns -- early exit !!SHOULD BE >=
+        if dist >= knns[k-1].1 then knns -- early exit
         else let ref_ind = refs[i].0 in
              let (_, _, knns') =
                loop (dist, ref_ind, knns) for j < k do
