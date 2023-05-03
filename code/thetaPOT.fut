@@ -33,7 +33,6 @@ let calculate_Qj [d] [d1] (point: *[d]f32) (rand_numbers: [d1]f32) : *[d]f32 =
         let acc[i]   = ((f32.cos rand_numbers[i]) * tmp  + (f32.sin rand_numbers[i]) * acc[i+1])
         let acc[i+1] = ((-f32.sin rand_numbers[i]) * tmp + (f32.cos rand_numbers[i]) * acc[i+1])
         in  acc
-        -- call_Qjk acc rand_numbers (i+1)
 
 -- Calculate Qj with 1 scan and 1 map instead of d^2 maps!!
 let calculate_Qjscanmap [d] [d1] (point: [d]f32) (rand_numbers: [d1]f32) : [d]f32 =
@@ -66,9 +65,9 @@ let Fd [d] (point: [d]f32) (d2 : i64) : [d]f32  =
     let one_over_d2sqr = c32.mk_re (1.0 / ( (f32.sqrt (f32.i64 d2)))) 
     let T = map (\k ->  
                     map (\l ->
-                        let exponent_im = c32.exp (c32.mk_im 
+                            let exponent_im = c32.exp (c32.mk_im 
                                 (-(2.0 * f32.pi * (f32.i64 k) * (f32.i64 l)) / (f32.i64 d2)))
-                        in one_over_d2sqr c32.* exponent_im
+                            in one_over_d2sqr c32.* exponent_im
                         ) (iota d2)  
                 ) (iota d2)
     let pTZ = mat_vec_complex T pZ
