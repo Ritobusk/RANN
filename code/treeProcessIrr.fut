@@ -91,7 +91,6 @@ def main [m] [n] [d] (k: i64) (defppl: i32) (input: [m][d]f32) (queries: [n][d]f
     let scInc_leaves_shp = scan (+) 0i32 leaves_shp |> map (i64.i32)
     let scExc_leaves_shp = [0i64] ++ (scInc_leaves_shp[:((length leaves_shp) - 1 )]) :> []i64
 
-
     -- 2. Find the leaf to which each query "naturally" belongs
     --    If your set of querries is named `querries` this is
     --    achieved with a map:

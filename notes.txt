@@ -83,3 +83,18 @@ Do you need to pad anymore now that the data is flat? Since the shape defines ho
         a node with e.g. 1 point in it by splitting it into a node with 0 points and a node with 1 point.
 
 Also I get an error when handling a node with no points inside it.
+
+
+
+
+Subtracting the center of mass of the collection of A from each point is fairly simple. The center of mass of a collection is defined by
+summing up all points of the collection and then dividing by the number of points in the collection.\\
+The summation can be done with vector summation since the d dimensional points can be treated as vectors.\\
+Then the sum of points can be divided by the number of points inside the collection and you have the center of mass of the collection.\\
+To shift the points ?towards? the center of mass just calculated you subtract the center of mass from each point with vector vector subtraction.\\
+
+
+
+The pseudorandom orthogonal transformations 
+The pseudorandom orthogonal transformations consists of 3 operators. This transformation needs to be performed on all points.
+ The first operator is P which permutes the coordinates of a vector. The second operator is Q which rotates a vector. And the third Operator F is a fast discrete Fourier transform. 
