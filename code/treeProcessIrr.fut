@@ -43,7 +43,7 @@ def findLeaf [q][d] (median_dims: [q]i32) (median_vals: [q]f32)
                     (height: i32) (query: [d]f32) =
   let leaf =
     loop (node_index) = (0)
-      while !( node_index >= ((1 << (height+1)) - 1)) do -- Maybe remove ! and replace >= with < 
+      while !( node_index >= ((1 << (height)) - 1)) do -- Maybe remove ! and replace >= with < 
         if query[median_dims[node_index]] < median_vals[node_index]
             then
                 (node_index+1)*2-1
@@ -53,11 +53,11 @@ def findLeaf [q][d] (median_dims: [q]i32) (median_vals: [q]f32)
   in i64.i32 leaf_val
 
 def reverseBit (num: i64) (bit: i64) : i64 =
-    let bit_val  = 1 << bit
-    let bit_rm = (num / bit_val) % 2
-    let rev_val = if bit_rm == 1 then -bit_val
-                                  else  bit_val
-    in num + rev_val
+  let bit_val  = 1 << bit
+  let bit_rm = (num / bit_val) % 2
+  let rev_val = if bit_rm == 1 then -bit_val
+                                else  bit_val
+  in num + rev_val
     
 def log2Int (n : i64) : i32 =
   let (_, res) =
@@ -65,6 +65,43 @@ def log2Int (n : i64) : i32 =
       while n > 1 do
         (n >> 1, r+1)
   in res 
+
+def searchForKnns [m] [n] [d] [k] 
+                  (queries: [n][d]f32) (init_knns: *[n][k](i32, f32)) 
+                  (leaves: [m][d]f32) (indir: [m]i32) (median_dims: []i32) 
+                  (median_vals: []f32) (shape_arr: []i32) (height: i32) =
+  let leaves_shp = 
+    let beg = i64.i32 (1 << height) - 1
+    let end = beg + (i64.i32 (1 << (height )))
+    in shape_arr[beg:end]
+  let scInc_leaves_shp = scan (+) 0i32 leaves_shp |> map (i64.i32)
+  let scExc_leaves_shp = [0i64] ++ (scInc_leaves_shp[:((length leaves_shp) - 1 )]) :> []i64
+
+  let queries_init_leafs = map (findLeaf median_dims median_vals height) queries
+
+  let (sorted_query_with_ind, sorted_query_leaf) = 
+    let q_with_ind = zip queries (iota n) 
+    let q_ind_with_leaf = zip q_with_ind queries_init_leafs
+    in (radix_sort_int_by_key (\(_,l) -> l) (log2Int (length leaves)) i64.get_bit q_ind_with_leaf) |> unzip
+  
+  let (sorted_query, sorted_query_ind) = unzip sorted_query_with_ind 
+
+  let leafs_with_ind = zip indir leaves
+
+  let knn_nat_leaf = map3 (\q q_ind l_ind -> bruteForce q init_knns[q_ind] 
+                                              leafs_with_ind[scExc_leaves_shp[l_ind]:scInc_leaves_shp[l_ind]]
+                          ) sorted_query sorted_query_ind sorted_query_leaf
+
+  let new_knns_sorted =
+    loop (curr_nn_set) = (knn_nat_leaf) for i < (i64.i32 height) do
+        let new_leaves = map (\l_num -> reverseBit l_num i) sorted_query_leaf
+        let better_nn_set = map3  (\q q_knn l_ind -> bruteForce q q_knn 
+                                                      leafs_with_ind[scExc_leaves_shp[l_ind]:scInc_leaves_shp[l_ind]]
+                                  ) sorted_query curr_nn_set new_leaves
+        in better_nn_set
+
+  in scatter init_knns sorted_query_ind new_knns_sorted 
+
 
 -- ToDos:
 -- 1. Pass the desired `height` of the kd-tree as program parameter instead of `defppl`
