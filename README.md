@@ -40,3 +40,9 @@ Alternatively continue on the algorithm.
 WEEK 8  
 Fix the flat building of the kdtree. Look at DPP lectures on irregular flattening.  
 Start using the flat irregular kdtree in the algorithm  
+  
+WEEK 1 Blok 4  
+Start on the report  
+Finish the algorithm  
+Check out the 'pytourch' thing that Cosmin initially linked to.  
+NEXT WEEK IS ON WEDNESDAY  

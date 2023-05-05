@@ -104,36 +104,38 @@ def sgmscan 't [n] (op: t->t->t) (ne: t)
   in vals
 
 def partition3L2 't [n] [p]
-        (mask : [n]bool) -- mask[i] == True => associated predicate holds on elem i
-        (shp_flag_arr: [n]i32)
-        (scan_shp: [p]i32)
-        (shp : [p]i32, flat_arr : [n]t) -- representation of an irregular array of array
+        (mask : [n]bool) -- mask[i] == True => associated predicate holds on elem i              [f,t,f,t,f,t,f,t,f,t,f,t]
+        (shp_flag_arr: [n]i32)                                                                -- [1,0,0,1,0,0,0,1,0,0,0,0]
+        (scan_shp: [p]i32)                                                                    --     [0,0,3,3,7,12]
+        (shp : [p]i32, flat_arr : [n]t) -- representation of an irregular array of array      -- shp:[0,0,3,0,4,5]
       : ([n]t, [p]i32) = -- result: the flat array reorganized & splitting point of each segment
 
-  let tfs = map (\f -> if f then 1 else 0) mask
-  let isT = sgmscan (+) 0 shp_flag_arr tfs
-  let splits = map2 (\s off -> if s == 0 then 0 else isT[off-1]) shp scan_shp :> [p]i32
+  let tfs = map (\f -> if f then 1 else 0) mask                                               -- [0,1,0,1,0,1,0,1,0,1,0,1]
+  let isT = sgmscan (+) 0 shp_flag_arr tfs                                                    -- [0,1,1,1,1,2,2,1,1,2,2,3]
+  let splits = map2 (\s off -> if s == 0 then 0 else isT[off-1]) shp scan_shp :> [p]i32       -- [1,2,3]
 
   -- Since you have many different segments you want to know the indicies of the current segment.
   --  You therefore add the exclusive scaned shape array elem to the start of each segment of tfs
   
   --- Maybe the duplicates are okay? Since they will try to write the same value to the same indice (in tfs_with_seg_val)---
   
-  let exc_scan_shp = ( [0i64] ++ (map (\i -> i64.i32 i) scan_shp[:(p - 1)]) ) :> [p]i64
-  let shifted_shp  = ( [0i32] ++ shp[:(p - 1)] ) :> [p]i32
-  let rmv_dup_exc_shp_tmp = map2 (\s off -> if s == 0 then -1 else off) shifted_shp exc_scan_shp
-  let rmv_dup_exc_shp = scatter (rmv_dup_exc_shp_tmp) [0] [0i64]
+  let exc_scan_shp = ( [0i64] ++ (map (\i -> i64.i32 i) scan_shp[:(p - 1)]) ) :> [p]i64           -- [0,0,0,3,3,7]
+  let shifted_shp  = ( [0i32] ++ shp[:(p - 1)] ) :> [p]i32                                        -- [0,0,0,3,0,4] 
+  let rmv_dup_exc_shp_tmp = map2 (\s off -> if s == 0 then -1 else off) shifted_shp exc_scan_shp  -- [-1,-1,-1,3,-1,7]
+  let rmv_dup_exc_shp = scatter (rmv_dup_exc_shp_tmp) [0] [0i64]                                  -- [0,-1,-1,3,-1,7]
   let isT_segments = 
-      let tfs_add_shp      = map (\ind -> tfs[ind] + (i32.i64 ind)) exc_scan_shp
-      let tfs_with_seg_val = scatter (copy tfs) (rmv_dup_exc_shp) tfs_add_shp
-      in sgmscan (+) 0 shp_flag_arr tfs_with_seg_val
+      let tfs_add_shp      = map (\ind -> tfs[ind] + (i32.i64 ind)) exc_scan_shp                  --[0,0,0,4,4,8]
+      let tfs_with_seg_val = scatter (copy tfs) (rmv_dup_exc_shp) tfs_add_shp                     --[0,1,0,4,0,1,0,8,0,1,0,1]
+      in sgmscan (+) 0 shp_flag_arr tfs_with_seg_val                                              --[0,1,1,4,4,5,5,8,8,9,9,10]
   -- I think there's something wrong with the -1
-  let isT_segments_last_elem = map2 (\s ind -> if s == 0 then -1 else isT_segments[ind-1]) shp scan_shp :> [p]i32
-
-  let ffs = map (\f -> if f then 0 else 1) mask 
+  let isT_segments_last_elem = map2 (\ind s -> if s == 0 then -1 else isT_segments[ind-1]) 
+                                                                      scan_shp shp :> [p]i32      -- [-1,-1,1,-1,5,10]   
+  let isT_ind = map2 (\off s -> if s == -1 then -1 else off) exc_scan_shp isT_segments_last_elem  -- [-1,-1,0,-1,3,7]
+  let ffs = map (\f -> if f then 0 else 1) mask                                                   -- [1,0,1,0,1,0,1,0,1,0,1,0]
   let isF_segments =
-      let ffs_add_Ts       = map2 (\ind t_val -> ffs[ind] + t_val) exc_scan_shp isT_segments_last_elem
-      let ffs_with_seg_val = scatter (copy ffs) (exc_scan_shp) ffs_add_Ts
+      let ffs_add_Ts       = map2 (\ind t_val -> ffs[ind] + t_val) 
+                                            exc_scan_shp isT_segments_last_elem                   -- [0,0,2,2,5,10]
+      let ffs_with_seg_val = scatter (copy ffs) (isT_ind) ffs_add_Ts                              -- [2,0,1,5, 1,0,1,10,1,0,1,0] 
       in sgmscan (+) 0 shp_flag_arr ffs_with_seg_val
 
   let inds = map3 (\c iT iF -> if c    then i64.i32(iT -1)

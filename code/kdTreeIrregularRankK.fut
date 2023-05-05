@@ -53,8 +53,8 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
 
             let start_shp = nodes_this_lvl - 1
             let end_shp   = start_shp + nodes_this_lvl
-            let shp_this_lvl       = trace ( shape_arr[start_shp:end_shp]) :> [nodes_this_lvl]i32
-            let scan_shp_this_lvl  = trace( scan (+) 0 shp_this_lvl  )
+            let shp_this_lvl       = ( shape_arr[start_shp:end_shp]) :> [nodes_this_lvl]i32
+            let scan_shp_this_lvl  = ( scan (+) 0 shp_this_lvl  )
 
             let med_dim = lev % (i32.i64 d) 
 
