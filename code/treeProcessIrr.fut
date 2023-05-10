@@ -26,16 +26,18 @@ def bruteForce [m][d][k] (query: [d]f32)
         let dist = sumSqrsSeq query (refs[i].1) in
         if dist >= knns[k-1].1 then knns -- early exit
         else let ref_ind = refs[i].0 in
-             let (_, _, knns') =
-               loop (dist, ref_ind, knns) for j < k do
-                 let cur_nn = knns[j].1  in
-                 if dist >= cur_nn
-                 then (dist, ref_ind, knns)
-                 else let tmp_ind = knns[j].0
-                      let knns[j] = (ref_ind, dist)
-                      let ref_ind = tmp_ind
-                      in  (cur_nn, ref_ind, knns)
-             in  knns'
+              let (_, _, knns') =
+                loop (dist, ref_ind, knns) for j < k do
+                  let cur_nn = knns[j] in
+                  if cur_nn.0 == ref_ind 
+                       then (f32.inf, -1, knns) -- already encountered
+                  else if dist >= cur_nn.1
+                       then (dist, ref_ind, knns)
+                  else let tmp_ind = cur_nn.0
+                       let knns[j] = (ref_ind, dist)
+                       let ref_ind = tmp_ind
+                       in  (cur_nn.1, ref_ind, knns)
+              in  knns'
 
 -- Given the median dimensions and values for each internal k-d tree node,
 --   finds the leaf to which the query naturally belongs to.

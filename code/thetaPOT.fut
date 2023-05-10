@@ -88,8 +88,8 @@ let Theta [d] (point :  [d]f32) (permutations : [][]i64) (random_numbers : [][]f
             in  calculate_Qj pointP random_numbers[i]
 
 def pseudoRandomOrthogonalTransformation [n] [d] (m: i64) (t: i32) (points : [n][d]f32) : [n][d]f32 =
-    let M1 =  m
-    let M2 =  m
+    let M1 =  m/2 + 1
+    let M2 =  M1
 
     let points' = copy points
 
