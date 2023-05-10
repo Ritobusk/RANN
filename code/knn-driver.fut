@@ -19,7 +19,7 @@ def main [m] [n] [d] (Tval: i32) (k: i64) (height: i32) (test_set: [m][d]f32) (q
       let transformed_queries  = (pseudoRandomOrthogonalTransformation M1 t queries)
       
       -- Step 3 Build the kd-tree
-      let (leaves, indir, median_dims, median_vals, shp_arr) = buildKdTree height test_set
+      let (leaves, indir, median_dims, median_vals, shp_arr) = buildKdTree height transformed_test_set
 
       -- Step 4 & 5 Search the tree and find new candidates
       in searchForKnns transformed_queries curr_nns
@@ -29,3 +29,5 @@ def main [m] [n] [d] (Tval: i32) (k: i64) (height: i32) (test_set: [m][d]f32) (q
   -- Step 7 perform depth one search "supercharging" on the found knns of quiries
   let (k_inds, k_dists) =  unzip <| map (\i_knn -> unzip i_knn) new_knns
   in (k_inds, k_dists)
+
+-- Brug 'any' funktionen til at sammenligne
