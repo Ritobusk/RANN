@@ -6,6 +6,9 @@
  
  cat data.in | ./pjqj
 
+futhark dataset -g 1i32 -g 15i64 -g [10000][7]f32 -g [9000][7]f32 
+
+
 
 sudo openconnect -u szm249 vpn.ku.dk --base-mtu=1450
 

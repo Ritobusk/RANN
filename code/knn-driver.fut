@@ -3,12 +3,13 @@ import "thetaPOT"
 import "treeProcessIrr"
 import "kdTreeIrregularRankK"
 
-def main [m] [n] [d] (Tval: i32) (k: i64) (height: i32) (test_set: [m][d]f32) (queries: [n][d]f32) =
+def RANN [m] [n] [d] (Tval: i32) (k: i64) (test_set: [m][d]f32) (queries: [n][d]f32) =
   -- Step 1: shift points
   let shifted_points = shiftPoints test_set
 
   -- Setup for loop 
   let init_knns = replicate n (replicate k (-1i32, f32.inf))
+  let height =  trace( log2Int (m / 256))
 
   -- Step 2-6 The loop:
   let new_knns =
@@ -30,4 +31,10 @@ def main [m] [n] [d] (Tval: i32) (k: i64) (height: i32) (test_set: [m][d]f32) (q
   let (k_inds, k_dists) =  unzip <| map (\i_knn -> unzip i_knn) new_knns
   in (k_inds, k_dists)
 
+
+
+def main [m] [n] [d] (Tval: i32) (k: i64) (test_set: [m][d]f32) (queries: [n][d]f32) =
+  RANN Tval k test_set queries
+
 -- Brug 'any' funktionen til at sammenligne
+
