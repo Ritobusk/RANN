@@ -24,7 +24,7 @@ def bruteForce2 [m][d][k] (query: [d]f32)
                        in  (cur_nn.1, ref_ind, knns)
               in  knns'
 
-def bruteNN [m] [n] [d] (k: i64) (test_set: [m][d]f32) (queries: [n][d]f32) =
+def bruteNNs [m] [n] [d] (k: i64) (test_set: [m][d]f32) (queries: [n][d]f32) =
   -- Setup for loop 
   let init_knns = replicate n (replicate k (-1i32, f32.inf))
 
@@ -38,8 +38,8 @@ def bruteNN [m] [n] [d] (k: i64) (test_set: [m][d]f32) (queries: [n][d]f32) =
       in cur_nns' 
 
 
-  let (k_inds, k_dists) =  unzip <| map (\i_knn -> unzip i_knn) new_knns
-  in (k_inds, k_dists)
+  let (k_inds, _) =  unzip <| map (\i_knn -> unzip i_knn) new_knns
+  in k_inds
 
 def main [m] [n] [d] (k: i64) (test_set: [m][d]f32) (queries: [n][d]f32) =
-  bruteNN k test_set queries
+  bruteNNs k test_set queries
