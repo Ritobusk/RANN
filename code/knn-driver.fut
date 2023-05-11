@@ -9,7 +9,7 @@ def RANN [m] [n] [d] (Tval: i32) (k: i64) (test_set: [m][d]f32) (queries: [n][d]
 
   -- Setup for loop 
   let init_knns = replicate n (replicate k (-1i32, f32.inf))
-  let height =  trace( log2Int (m / 256))
+  let height =  trace( log2Int (m / 64))
 
   -- Step 2-6 The loop:
   let new_knns =
@@ -27,7 +27,7 @@ def RANN [m] [n] [d] (Tval: i32) (k: i64) (test_set: [m][d]f32) (queries: [n][d]
                        leaves indir median_dims median_vals shp_arr 
                        height
 
-  -- Step 7 perform depth one search "supercharging" on the found knns of quiries
+  -- Step 7 omitted here
   let (k_inds, _) =  unzip <| map (\i_knn -> unzip i_knn) new_knns
   in k_inds
 
@@ -39,7 +39,7 @@ def superRANN [m] [n] [d] (Tval: i32) (k: i64) (test_set: [m][d]f32) (queries: [
   -- Setup for loop 
   let init_knns_q = replicate n (replicate k (-1i32, f32.inf))
   let init_knns_t = replicate m (replicate k (-1i32, f32.inf))
-  let height =  trace( log2Int (m / 256))
+  let height =  trace( log2Int (m / 64))
 
   -- Step 2-6 The loop:
   let (new_knns_q, new_knns_t) =
@@ -65,17 +65,15 @@ def superRANN [m] [n] [d] (Tval: i32) (k: i64) (test_set: [m][d]f32) (queries: [
   let (knn_inds_q, _) =  unzip <| map (\i_knn -> unzip i_knn) new_knns_q
   let (knn_inds_t, _) =  unzip <| map (\i_knn -> unzip i_knn) new_knns_t
   let supercharging = 
-        let ksqr = k**2
-        let ksqr_inds = map (\knn_ind_q -> (flatten <| 
-                                (map (\ind -> knn_inds_t[ind]) knn_ind_q)) :> [ksqr]i32 ) knn_inds_q
-        
-        let ksqr_points = map (\inds -> map (\ind -> (ind, test_set[ind])) inds) ksqr_inds
-        let super_knns = map2 (\refs ind -> bruteForce queries[ind] new_knns_q[ind] refs ) ksqr_points (iota n)
+    let ksqr = k**2
+    let ksqr_inds = map (\knn_ind_q -> (flatten <| 
+                            (map (\ind -> knn_inds_t[ind]) knn_ind_q)) :> [ksqr]i32 ) knn_inds_q
+    
+    let ksqr_points = map (\inds -> map (\ind -> (ind, test_set[ind])) inds) ksqr_inds
+    in map2 (\refs ind -> bruteForce queries[ind] new_knns_q[ind] refs ) ksqr_points (iota n)
 
-        in  super_knns
   let (super_knn_inds, _) =  unzip <| map (\i_knn -> unzip i_knn) supercharging
   in (super_knn_inds)
-
 
 
 def main [m] [n] [d] (Tval: i32) (k: i64) (test_set: [m][d]f32) (queries: [n][d]f32) =

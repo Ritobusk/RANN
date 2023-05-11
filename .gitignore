@@ -2,13 +2,15 @@
 *
 
 # Unignore all with extensions
-!*.*
+!.in
 
 # Unignore all dirs
 !*/
 
+*.pkg
 *.c
 *.actual
 *.expected
+*.in
 *.DS_Store
 !Makefile
