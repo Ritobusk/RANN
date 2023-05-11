@@ -15,64 +15,9 @@ def partition2Ind [n] (cs: [n]bool) : ([n]i32, i32) =
                     ) cs isT isF
     in (inds, i)
 
-def sumSqrs [d] (xs: [d]f32) (ys: [d]f32) : f32 =
-    map2 (\x y -> let z = x-y in z*z) xs ys |> reduce (+) 0.0f32
-
-def sumSqrsSeq [d] (xs: [d]f32) (ys: [d]f32) : f32 =
-    loop (res) = (0.0f32) for (x,y) in (zip xs ys) do
-        let z = x-y in res + z*z
-
-def gather1D 't [m] (arr1D: [m]t) (inds: [m]i32) : *[m]t =
-    map (\ind -> arr1D[ind] ) inds
-
-def gather2D 't [m][d] (arr2D: [m][d]t) (inds: [m]i32) : *[m][d]t =
-    map (\ind -> map (\j -> arr2D[ind,j]) (iota d) ) inds
-
-def scatter2D [m][k][n] 't (arr2D: *[m][k]t) (qinds: [n]i32) (vals2D: [n][k]t) : *[m][k]t =
-  let nk = n*k
-  let flat_qinds = map (\i -> let (d,r) = (i32.i64 i / i32.i64 k,
-                                           i32.i64 i % i32.i64 k)
-                              in i64.i32 (qinds[d]*i32.i64 k + r)
-                       ) (iota nk)
-  let res1D = scatter (flatten arr2D) flat_qinds ((flatten vals2D) :> [nk]t) 
-  in  unflatten m k res1D 
-
-
-def getParent (node_index: i32) = (node_index-1) / 2
-
-def isLeaf (h: i32) (node_index: i32) =
-    node_index >= ((1 << (h+1)) - 1)
-
--- the k'th ancestor of `node_ind` can be computed with
--- the formula: `(node_ind + 1 - (2^k)) / (2^k)`, for example
--- the parent           (k==1): `(node_ind - 1) / 2`
--- the grandparent      (k==2): `(node_ind - 3) / 4`
--- the grandgrandparent (k==3): `(node_ind - 7) / 8`
-def compute_Kth_ancestor (k: i32) (node_ind: i32) =
-    let tpk = 1 << k
-    in  (node_ind + 1 - tpk) / tpk
-
-def findNodeLevel (node: i32) : i32 =
- ( loop (lev, idx) = (0i32, node)
-     while idx > 0i32 do
-       (lev+1i32, getParent idx) ).0
-
--- given a tree `node1` at level `lev` and another tree leaf `leaf`,
--- this function computes the closest common ancestor of `node1` and `node2`
--- `h` is the height of the binary tree (without leaves).
-def findClosestCommonAncestor (h: i32) (lev: i32) (node1: i32) (leaf: i32) : i32 =
-    let node2 = compute_Kth_ancestor (h+1-lev) leaf
-    let (res,_) =
-      loop (node1, node2) while node1 != node2 do
-        (getParent node1, getParent node2)
-    in  res
-
 
 def imap  as f = map f as
 def imap2 as bs f = map2 f as bs
-def imap3 as bs cs f = map3 f as bs cs
-def imap4 as bs cs ds f = map4 f as bs cs ds
-def ifilter as p = filter p as
 
 def ones [q] 't (_xs: [q]t) = replicate q 1i32
 
@@ -103,6 +48,58 @@ def sgmscan 't [n] (op: t->t->t) (ne: t)
   let (_, vals) = unzip flgs_vals
   in vals
 
+-- Please implement the function below, which is supposed to 
+-- be the lifted version of `partition2` function given above.
+-- Arguments:
+--   `(shp: [m]i32, arr: [n]t)` is the flat-representation of
+--            the irregular 2-dim (input) array to be partitioned;
+--            `shp` is its shape, and `arr` is its flat data; 
+--   `condsL` is an irregular 2-dim array of booleans, which has
+--            the same shape (`shp`) and flat-length (`n`) as the
+--            input to-be-partitioned array.  
+-- The result is a tuple:
+--    the first element is an array of split points of size `m`,
+--       i.e., the index in each segment where the `false` elements
+--       start.
+--    the second element is the flat-representation of the partitioned result:
+--       the first element should simply be `shp` (redundant)
+--       the second element should be the flat-data of the partitioned result.
+--let partition2L 't [n] [m]
+--                -- the shape of condsL is also shp
+--                (condsL: [n]bool) (dummy: t)
+--                (shp: [m]i64, arr: [n]t) :
+--                ([m]i32, ([m]i64, [n]t)) =
+--  let begs   = scan (+) 0 shp
+--  let flags  =  (  iota m
+--                |> map i32.i64
+--                |> map (+1)
+--                |> mkFlagArray shp 0i32
+--                ) :> [n]i32
+--
+--  let outinds= sgmSumInt flags <| map (\f -> if f==0 then 0 else f-1) flags
+--
+--  let tflgsL = map (\c -> if c then 1i32 else 0i32) condsL
+--  let fflgsL = map (\b -> 1 - b) tflgsL
+--
+--  let indsTL= sgmSumInt flags tflgsL
+--  let tmpL  = sgmSumInt flags fflgsL
+--
+--  -- let lst = indsT[n-1]
+--  let lstL   = map2 (\s b -> if s==0 then -1 else #[unsafe] indsTL[b-1]
+--                    ) shp begs
+--
+--  -- let indsF = map (+lst) tmp
+--  let indsFL = map2 (\t sgmind-> t + #[unsafe] lstL[sgmind]) tmpL outinds
+--
+--  let indsL = map4(\c indT indF sgmind->
+--                        let offs = if sgmind > 0 then #[unsafe] begs[sgmind-1] else 0i64
+--                        in  if c then offs + (i64.i32 indT) - 1
+--                                 else offs + (i64.i32 indF) - 1
+--                  ) condsL indsTL indsFL outinds
+--
+--  let fltarrL = scatter (replicate n dummy) indsL arr
+--  in  (lstL, (shp,fltarrL))
+
 def partition3L2 't [n] [p]
         (mask : [n]bool) -- mask[i] == True => associated predicate holds on elem i              [f,t,f,t,f,t,f,t,f,t,f,t]
         (shp_flag_arr: [n]i32)                                                                -- [1,0,0,1,0,0,0,1,0,0,0,0]
@@ -117,17 +114,13 @@ def partition3L2 't [n] [p]
   -- Since you have many different segments you want to know the indicies of the current segment.
   --  You therefore add the exclusive scaned shape array elem to the start of each segment of tfs
   
-  --- Duplicates Are okay !
-  
   let exc_scan_shp = ( [0i64] ++ (map (\i -> i64.i32 i) scan_shp[:(p - 1)]) ) :> [p]i64           -- [0,0,0,3,3,7]
-  let shifted_shp  = ( [0i32] ++ shp[:(p - 1)] ) :> [p]i32                                        -- [0,0,0,3,0,4] 
-  let rmv_dup_exc_shp_tmp = map2 (\s off -> if s == 0 then -1 else off) shifted_shp exc_scan_shp  -- [-1,-1,-1,3,-1,7]
-  let rmv_dup_exc_shp = scatter (rmv_dup_exc_shp_tmp) [0] [0i64]                                  -- [0,-1,-1,3,-1,7]
+
   let isT_segments = 
       let tfs_add_shp      = map (\ind -> tfs[ind] + (i32.i64 ind)) exc_scan_shp                  --[0,0,0,4,4,8]
-      let tfs_with_seg_val = scatter (copy tfs) (rmv_dup_exc_shp) tfs_add_shp                     --[0,1,0,4,0,1,0,8,0,1,0,1]
+      let tfs_with_seg_val = scatter (copy tfs) (exc_scan_shp) tfs_add_shp                        --[0,1,0,4,0,1,0,8,0,1,0,1]
       in sgmscan (+) 0 shp_flag_arr tfs_with_seg_val                                              --[0,1,1,4,4,5,5,8,8,9,9,10]
-  -- I think there's something wrong with the -1
+
   let isT_segments_last_elem = map2 (\ind s -> if s == 0 then -1 else isT_segments[ind-1]) 
                                                                       scan_shp shp :> [p]i32      -- [-1,-1,1,-1,5,10]   
   let isT_ind = map2 (\off s -> if s == -1 then -1 else off) exc_scan_shp isT_segments_last_elem  -- [-1,-1,0,-1,3,7]
@@ -144,28 +137,6 @@ def partition3L2 't [n] [p]
   let r =  scatter (replicate n flat_arr[0]) inds flat_arr
   in (r, splits) 
 
-
-def partition3 [ n ] 't 
-              ( p : ( t -> bool )) 
-              ( arr : [ n ] t ) : ([ n ]t , i64 ) = 
-    let cs = map p arr 
-    let tfs = map (\ f -> if f then 1 else 0) cs
-    let isT = scan (+) 0 tfs
-    let i = isT[n-1] 
-    let ffs = map (\f -> if f then 0 else 1) cs 
-    let isF = map (+i) <| scan (+) 0 ffs 
-    let inds = map3 (\c iT iF -> if c then iT -1
-                                       else iF -1
-                    ) cs isT isF
-    let r = scatter (replicate n arr[0]) inds arr
-    in (r , i )
-
-
-
-let mkII1 [m] (shp: [m]i32) : *[]i32 =
-    let flags = mkFlagArray shp 0i8 (replicate m 1i8)
-    in  map i32.i8 flags
-     |> scan (+) 0i32
 
 -- meds: hopefully a decent estimate of the median values for each partition
 -- ks:   the k-th smallest element to be searched for each partition (starting from 1)

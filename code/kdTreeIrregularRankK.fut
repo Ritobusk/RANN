@@ -106,7 +106,12 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
 
 --def main3 [m] [d] (defppl: i32) (input: [m][d]f32) =
 --    computeTreeShape (i32.i64 m) defppl
-    
+def buildKdTree [m] [d] (height: i32) (input: [m][d]f32) =
+    let num_inner_nodes = (1 << height) - 1
+    let (leaves, indir, median_dims, median_vals, shp_arr) =
+        mkKDtree (height) (i64.i32 num_inner_nodes) m input
+    in  (leaves, indir, median_dims , median_vals, shp_arr)
+   
 
 def main [m] [d] (defppl: i32) (input: [m][d]f32) =
     --let (height, num_inner_nodes, m') = computeTreeShape (i32.i64 m) defppl
