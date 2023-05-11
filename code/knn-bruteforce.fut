@@ -31,11 +31,14 @@ def bruteNNs [m] [n] [d] (k: i64) (test_set: [m][d]f32) (queries: [n][d]f32) =
   let refs_ind = iota32 m 
   let refs = zip refs_ind test_set
 
-  let new_knns =
-    loop cur_nns = init_knns for i < n do
-      let new_knn = bruteForce2 queries[i] cur_nns[i] refs
-      let cur_nns' = cur_nns with [i] = copy new_knn
-      in cur_nns' 
+  let f query curr_nn = 
+         bruteForce2 query curr_nn refs
+
+  let new_knns = map2 f queries init_knns
+    --loop cur_nns =  init_knns for i < n do
+    --  let new_knn = bruteForce2 queries[i] cur_nns[i] refs
+    --  let cur_nns' = cur_nns with [i] = copy new_knn
+    --  in cur_nns' 
 
 
   let (k_inds, _) =  unzip <| map (\i_knn -> unzip i_knn) new_knns

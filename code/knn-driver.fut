@@ -9,7 +9,7 @@ def RANN [m] [n] [d] (Tval: i32) (k: i64) (test_set: [m][d]f32) (queries: [n][d]
 
   -- Setup for loop 
   let init_knns = replicate n (replicate k (-1i32, f32.inf))
-  let height =  trace( log2Int (m / 64))
+  let height =  trace( log2Int (m / 256))
 
   -- Step 2-6 The loop:
   let new_knns =
@@ -39,7 +39,7 @@ def superRANN [m] [n] [d] (Tval: i32) (k: i64) (test_set: [m][d]f32) (queries: [
   -- Setup for loop 
   let init_knns_q = replicate n (replicate k (-1i32, f32.inf))
   let init_knns_t = replicate m (replicate k (-1i32, f32.inf))
-  let height =  trace( log2Int (m / 64))
+  let height =  trace( log2Int (m / 256))
 
   -- Step 2-6 The loop:
   let (new_knns_q, new_knns_t) =
