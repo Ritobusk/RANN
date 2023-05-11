@@ -117,7 +117,7 @@ def partition3L2 't [n] [p]
   -- Since you have many different segments you want to know the indicies of the current segment.
   --  You therefore add the exclusive scaned shape array elem to the start of each segment of tfs
   
-  --- Maybe the duplicates are okay? Since they will try to write the same value to the same indice (in tfs_with_seg_val)---
+  --- Duplicates Are okay !
   
   let exc_scan_shp = ( [0i64] ++ (map (\i -> i64.i32 i) scan_shp[:(p - 1)]) ) :> [p]i64           -- [0,0,0,3,3,7]
   let shifted_shp  = ( [0i32] ++ shp[:(p - 1)] ) :> [p]i32                                        -- [0,0,0,3,0,4] 

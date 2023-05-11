@@ -32,6 +32,7 @@ def bruteForce [m][d][k] (query: [d]f32)
                  if dist >= cur_nn
                  then (dist, ref_ind, knns)
                  else let tmp_ind = knns[j].0
+                      -- add if tmp_ind == ref_ind then "early exit"
                       let knns[j] = (ref_ind, dist)
                       let ref_ind = tmp_ind
                       in  (cur_nn, ref_ind, knns)
