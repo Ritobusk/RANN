@@ -1,10 +1,10 @@
- futhark test --backend=c spMVmult-seq.fut  //To test a file
- cd $docs // go to documents
+futhark test --backend=c spMVmult-seq.fut  //To test a file
+cd $docs // go to documents
 
- futhark pkg add github.com/diku-dk/complex // To add some package
- futhark pkg sync                           // To sync the package
- 
- cat data.in | ./pjqj
+futhark pkg add github.com/diku-dk/complex // To add some package
+futhark pkg sync                           // To sync the package
+
+cat data.in | ./pjqj
 
 futhark dataset -g 1i32 -g 15i64 -g [50000][7]f32 -g [45000][7]f32 
 
