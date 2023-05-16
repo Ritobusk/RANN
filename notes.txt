@@ -98,3 +98,15 @@ To shift the points ?towards? the center of mass just calculated you subtract th
 The pseudorandom orthogonal transformations 
 The pseudorandom orthogonal transformations consists of 3 operators. This transformation needs to be performed on all points.
  The first operator is P which permutes the coordinates of a vector. The second operator is Q which rotates a vector. And the third Operator F is a fast discrete Fourier transform. 
+
+
+Runs out of memory when k and d is too high
+
+[szm249@futharkhpa03fl code]$ futhark dataset -b -g 10i32 -g 100i64 -g [100000][150]f32 -g [500][150]f32 > tmpdata5
+[szm249@futharkhpa03fl code]$ ./knn-comparer -t time_with_k100 < tmpdata5
+./knn-comparer: Failed to allocate memory in space 'device'.
+Attempted allocation:   3000000000 bytes
+Currently allocated:     305649351 bytes
+knn-comparer.c:9688: CUDA call
+  cuda_alloc(&ctx->cuda, ctx->log, (size_t) size, desc, &block->mem)
+failed with error code 2 (out of memory)

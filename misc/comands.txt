@@ -13,3 +13,10 @@ futhark dataset -g 1i32 -g 15i64 -g [50000][7]f32 -g [45000][7]f32
 sudo openconnect -u szm249 vpn.ku.dk --base-mtu=1450
 
 ssh -l szm249 futharkhpa03fl.unicph.domain
+
+
+futhark dataset -b -g 1i32 -g 5i64 -g [100000][50]f32 -g [500][50]f32 > tmpdata5
+futhark dataset -b -g 1i32 -g 10i64 -g [100000][50]f32 -g [500][50]f32 > tmpdata10
+futhark dataset -b -g 1i32 -g 15i64 -g [100000][50]f32 -g [500][50]f32 > tmpdata15
+futhark dataset -b -g 1i32 -g 20i64 -g [100000][50]f32 -g [500][50]f32 > tmpdata20
+futhark dataset -b -g 1i32 -g 100i64 -g [100000][50]f32 -g [500][50]f32 > tmpdata100
