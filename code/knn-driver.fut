@@ -77,4 +77,4 @@ def superRANN [m] [n] [d] (Tval: i32) (k: i64) (test_set: [m][d]f32) (queries: [
 
 
 def main [m] [n] [d] (Tval: i32) (k: i64) (test_set: [m][d]f32) (queries: [n][d]f32) =
-  superRANN Tval k test_set queries
+  RANN Tval k test_set queries
