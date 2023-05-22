@@ -65,7 +65,6 @@ def superRANN [m] [n] [d] (Tval: i32) (k: i64) (test_set: [m][d]f32) (queries: [
   let (knn_inds_q, _) =  unzip <| map (\i_knn -> unzip i_knn) new_knns_q
   let (knn_inds_t, _) =  unzip <| map (\i_knn -> unzip i_knn) new_knns_t
   let supercharging = 
-    let ksqr = k**2
     let (super_knn_inds_seq) =
       loop (curr_knns_q) = (new_knns_q) for i < k do
         let k_inds = map (\knn_ind_q -> knn_inds_t[knn_ind_q[i]]) knn_inds_q
@@ -73,6 +72,7 @@ def superRANN [m] [n] [d] (Tval: i32) (k: i64) (test_set: [m][d]f32) (queries: [
         in  map2 (\refs ind -> bruteForce queries[ind] curr_knns_q[ind] refs ) k_points (iota n)
     in super_knn_inds_seq
 
+    --let ksqr = k**2 
     --let ksqr_inds = map (\knn_ind_q -> (flatten <| 
     --                        (map (\ind -> knn_inds_t[ind]) knn_ind_q)) :> [ksqr]i32 ) knn_inds_q
    -- 
