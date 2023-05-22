@@ -110,3 +110,11 @@ Currently allocated:     305649351 bytes
 knn-comparer.c:9688: CUDA call
   cuda_alloc(&ctx->cuda, ctx->log, (size_t) size, desc, &block->mem)
 failed with error code 2 (out of memory)
+
+
+Flere data punkter for runtime. fx k = 5, 15 og 30.
+Prøv at gøre supercharging coaleced. Se note i knn-driver
+Gør runtime grafer readable
+Test også impact of size of leaves
+Lav et issue, så buggen med at når k bliver for stort, så kommer der fejl.
+Skriv experiment delen færdig. Beskriv dataen, maskinen, grafernes 'natur'. Derefter diskussion.
