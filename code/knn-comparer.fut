@@ -3,8 +3,9 @@ import "knn-bruteforce"
 
 
 def main [m] [n] [d] (Tval: i32) (k: i64) (test_set: [m][d]f32) (queries: [n][d]f32) =
-  let RANN_knns  = superRANN Tval k test_set queries
-  let brute_knns = bruteNNs k test_set queries
+  let queries' = (queries[:100])
+  let RANN_knns  = superRANN Tval k test_set queries'
+  let brute_knns = bruteNNs k test_set queries'
 
   let correct_nns =
         let correct_nns_tmp = 
@@ -15,6 +16,6 @@ def main [m] [n] [d] (Tval: i32) (k: i64) (test_set: [m][d]f32) (queries: [n][d]
                 ) RANN_knns brute_knns
         
         in reduce (+) 0i64 correct_nns_tmp
-  let accuracy =  (f64.i64 correct_nns) / (f64.i64 (k * n))
+  let accuracy =  (f64.i64 correct_nns) / (f64.i64 (k * 100))
 
   in (accuracy)

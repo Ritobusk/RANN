@@ -112,9 +112,16 @@ knn-comparer.c:9688: CUDA call
 failed with error code 2 (out of memory)
 
 
-Flere data punkter for runtime. fx k = 5, 15 og 30.
-Prøv at gøre supercharging coaleced. Se note i knn-driver
-Gør runtime grafer readable
-Test også impact of size of leaves
+DONE - Flere data punkter for runtime. fx k = 5, 15 og 30.
+DONE - Prøv at gøre supercharging coaleced. Se note i knn-driver
+DONE - Gør runtime grafer readable
+DONE - Test også impact of size of leaves
 Lav et issue, så buggen med at når k bliver for stort, så kommer der fejl.
 Skriv experiment delen færdig. Beskriv dataen, maskinen, grafernes 'natur'. Derefter diskussion.
+
+
+Kør make runB, make runD, make runD10
+lav om på sort, kør runD
+lav om på leaves size.
+kør acc ved siden af.
+acc til t1, t10, super, leaf size.
