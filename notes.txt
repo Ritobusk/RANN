@@ -126,6 +126,8 @@ lav om på leaves size.
 kør acc ved siden af.
 acc til t1, t10, super, leaf size.
 
+
+futharkhpa03fl
 ./knn-driver: knn-driver.c:7372: CUDA call
   cuCtxSynchronize()
 failed with error code 700 (an illegal memory access was encountered)
