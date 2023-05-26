@@ -13,17 +13,6 @@ let calculate_Pj [d] (point: [d]f32) (permutation : [d]i64) : *[d]f32 =
     map (\i -> point[i]) permutation
 
 -- Rotation functions
-let call_Qjk [d] [d1] (point: [d]f32) (rand_numbers: [d1]f32) (i : i64) : [d]f32 =
-    let Qjk = map (\k ->
-                    if      i == k then ((f32.cos rand_numbers[i]) * point[i]  + (f32.sin rand_numbers[i]) * point[i+1])
-                    else if i+1 == k then  ((-f32.sin rand_numbers[i]) * point[i] + (f32.cos rand_numbers[i]) * point[i+1] )
-                    else point[k] 
-                ) (iota d)
-    in Qjk
- 
---let calculate_Qj [d] [d1] (point: [d]f32) (rand_numbers: [d1]f32) : [d]f32 =
---    loop acc = call_Qjk point rand_numbers 0 for i < d1 -1  do
---        call_Qjk acc rand_numbers (i+1)
 
 -- Later on, try to see if you can parallelize this, e.g., scan with 2x2 matmul.
 let calculate_Qj [d] [d1] (point: *[d]f32) (rand_numbers: [d1]f32) : *[d]f32 =
@@ -34,18 +23,18 @@ let calculate_Qj [d] [d1] (point: *[d]f32) (rand_numbers: [d1]f32) : *[d]f32 =
         let acc[i+1] = ((-f32.sin rand_numbers[i]) * tmp + (f32.cos rand_numbers[i]) * acc[i+1])
         in  acc
 
--- Calculate Qj with 1 scan and 1 map instead of d^2 maps!!
-let calculate_Qjscanmap [d] [d1] (point: [d]f32) (rand_numbers: [d1]f32) : [d]f32 =
-    let index    = iota d1
-    let acc_vals = scan (\acc i -> 
-                let i = i64.f32 i
-                in ((-f32.sin rand_numbers[i]) * acc + (f32.cos rand_numbers[i]) * point[i+1] )
-                )point[0] (map (f32.i64) index)
-    in map (\k ->
-            if k == 0          then ((f32.cos rand_numbers[k]) * point[0]  + (f32.sin rand_numbers[k]) * point[k+1])
-            else if k == (d-1) then acc_vals[k-1]
-            else ((f32.cos rand_numbers[k]) * acc_vals[k-1]  + (f32.sin rand_numbers[k]) * point[k+1] )
-        ) (iota d)
+-- Calculate Qj with 1 scan and 1 map instead of d^2 maps!! Does not work
+--let calculate_Qjscanmap [d] [d1] (point: [d]f32) (rand_numbers: [d1]f32) : [d]f32 =
+--    let index    = iota d1
+--    let acc_vals = scan (\acc i -> 
+--                let i = i64.f32 i
+--                in ((-f32.sin rand_numbers[i]) * acc + (f32.cos rand_numbers[i]) * point[i+1] )
+--                )point[0] (map (f32.i64) index)
+--    in map (\k ->
+--            if k == 0          then ((f32.cos rand_numbers[k]) * point[0]  + (f32.sin rand_numbers[k]) * point[k+1])
+--            else if k == (d-1) then acc_vals[k-1]
+--            else ((f32.cos rand_numbers[k]) * acc_vals[k-1]  + (f32.sin rand_numbers[k]) * point[k+1] )
+--        ) (iota d)
     
 -- Fourier transform functions
 let mat_vec_complex [d2] (mat : [d2][d2](f32,f32)) (vec : [d2](f32,f32))  =
