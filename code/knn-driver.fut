@@ -39,7 +39,7 @@ def superRANN [m] [n] [d] (Tval: i32) (k: i64) (test_set: [m][d]f32) (queries: [
   -- Setup for loop 
   let init_knns_q = replicate n (replicate k (-1i32, f32.inf))
   let init_knns_t = replicate m (replicate k (-1i32, f32.inf))
-  let height =  ( log2Int (m / 1024))
+  let height =  ( log2Int (m / 256))
 
   -- Step 2-6 The loop:
   let (new_knns_q, new_knns_t) =
@@ -69,10 +69,11 @@ def superRANN [m] [n] [d] (Tval: i32) (k: i64) (test_set: [m][d]f32) (queries: [
     let (super_knn_inds_seq) =
       loop (curr_knns_q) = (new_knns_q) for i < k do
         let k_inds = map (\knn_ind_q -> map (\q -> knn_inds_t[knn_ind_q[i],q]) (iota k)) knn_inds_q
-        let k_points = map (\inds -> map (\ind -> 
-                                        let test_point = map (\k_ind -> test_set[ind, k_ind]) (iota d)
-                                        in (ind, test_point)
-                                        ) inds) k_inds
+        let k_points = --map (\inds -> map (\ind -> 
+                       --                 let test_point = map (\k_ind -> test_set[ind, k_ind]) (iota d)
+                       --                 in (ind, test_point)
+                       --                 ) inds) k_inds
+                       map (\inds -> map (\ind -> (ind, test_set[ind])) inds) k_inds
         in  map2 (\refs ind -> bruteForce queries[ind] curr_knns_q[ind] refs ) k_points (iota n)
     in super_knn_inds_seq
 
@@ -88,4 +89,4 @@ def superRANN [m] [n] [d] (Tval: i32) (k: i64) (test_set: [m][d]f32) (queries: [
 
 
 def main [m] [n] [d] (Tval: i32) (k: i64) (test_set: [m][d]f32) (queries: [n][d]f32) =
-  RANN Tval k test_set queries
+  superRANN Tval k test_set queries

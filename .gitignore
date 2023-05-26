@@ -2,11 +2,14 @@
 *
 
 # Unignore all with extensions
-!.in
+
 
 # Unignore all dirs
 !*/
 
+!notes.txt
+
+*.txt
 *.pkg
 !*.sh
 *.c
