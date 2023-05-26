@@ -93,16 +93,21 @@ def searchForKnns [m] [n] [d] [k]
   let knn_nat_leaf = map3 (\q q_ind l_ind -> bruteForce q init_knns[q_ind] 
                                               leafs_with_ind[scExc_leaves_shp[l_ind]:scInc_leaves_shp[l_ind]]
                           ) sorted_query sorted_query_ind sorted_query_leaf
+			                      --queries (iota n) queries_init_leafs 
 
   let new_knns_sorted =
     loop (curr_nn_set) = (knn_nat_leaf) for i < (i64.i32 height) do
-        let new_leaves = map (\l_num -> reverseBit l_num i) sorted_query_leaf
+        let new_leaves = map (\l_num -> reverseBit l_num i) sorted_query_leaf 
+                                                            --queries_init_leafs
         let better_nn_set = map3  (\q q_knn l_ind -> bruteForce q q_knn 
                                                       leafs_with_ind[scExc_leaves_shp[l_ind]:scInc_leaves_shp[l_ind]]
                                   ) sorted_query curr_nn_set new_leaves
+					                          --queries curr_nn_set new_leaves
+				
         in better_nn_set
 
   in scatter init_knns sorted_query_ind new_knns_sorted 
+	      --(iota n) new_knns_sorted	
 
 
 -- ToDos:
