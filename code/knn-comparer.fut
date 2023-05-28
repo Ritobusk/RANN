@@ -4,7 +4,7 @@ import "knn-bruteforce"
 
 def main [m] [n] [d] (Tval: i32) (k: i64) (test_set: [m][d]f32) (queries: [n][d]f32) =
   let queries' = (queries[:100])
-  let RANN_knns  = testRANN Tval k test_set queries'
+  let RANN_knns  = superRANN Tval k test_set queries'
   let brute_knns = bruteNNs k test_set queries'
 
   let correct_nns =

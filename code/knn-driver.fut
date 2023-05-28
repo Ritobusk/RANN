@@ -62,7 +62,8 @@ def RANN [m] [n] [d] (Tval: i32) (k: i64) (test_set: [m][d]f32) (queries: [n][d]
 
 def superRANN [m] [n] [d] (Tval: i32) (k: i64) (test_set: [m][d]f32) (queries: [n][d]f32) =
   -- Step 1: shift points
-  let shifted_points = shiftPoints test_set
+  --let shifted_points = shiftPoints test_set
+  let (t_shifted_points, q_shifted_points) = shiftTandQPoints test_set queries
 
   -- Setup for loop 
   let init_knns_q = replicate n (replicate k (-1i32, f32.inf))
@@ -74,8 +75,8 @@ def superRANN [m] [n] [d] (Tval: i32) (k: i64) (test_set: [m][d]f32) (queries: [
     loop (curr_knns_q, curr_knns_t)= (init_knns_q, init_knns_t) for t < Tval do
       -- Step 2 Perform the pseudo random orthogonal transformation on the test set and quiery set
       let M1 = i64.i32 <| log2Int d
-      let transformed_test_set = pseudoRandomOrthogonalTransformation M1 t test_set
-      let transformed_queries  = (pseudoRandomOrthogonalTransformation M1 t queries)
+      let transformed_test_set = pseudoRandomOrthogonalTransformation M1 t t_shifted_points
+      let transformed_queries  = (pseudoRandomOrthogonalTransformation M1 t q_shifted_points)
       
       -- Step 3 Build the kd-tree
       let (leaves, indir, median_dims, median_vals, shp_arr) = buildKdTree height transformed_test_set
