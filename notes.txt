@@ -120,14 +120,63 @@ Lav et issue, så buggen med at når k bliver for stort, så kommer der fejl.
 Skriv experiment delen færdig. Beskriv dataen, maskinen, grafernes 'natur'. Derefter diskussion.
 
 
-Kør make runB, make runD, make runD10
-lav om på sort, kør runD
-lav om på leaves size.
-kør acc ved siden af.
-acc til t1, t10, super, leaf size.
-
-
 futharkhpa03fl
 ./knn-driver: knn-driver.c:7372: CUDA call
   cuCtxSynchronize()
 failed with error code 700 (an illegal memory access was encountered)
+
+Weird behavior upon increasing input variable. Possible bug?
+
+Hello. (I am assuming the people fixing issues have access to the futharkhpa03fl server!) I get the following error:
+
+./knn-driver: knn-driver.c:7372: CUDA call
+  cuCtxSynchronize()
+failed with error code 700 (an illegal memory access was encountered)
+
+This happens when I increase either an input variable k or d. E.g. when k = 60 it works as intended. But increasing it to 90 creates the error.
+
+The machine I used was futharkhpa03fl with futhark version 0.22.4 and 0.25. Both produced the same error. 
+My program uses a lot of memory so futharkhpa03fl should probably be used to run it!
+I attached the code. There are 2 versions since unflatten was changed in how it is called. Otherwise the 2 zip files are identical.
+It can be run without issue with the following commands:
+
+unzip IssueCodeV0.22.4.zip
+
+cd IssueCode/
+
+futhark cuda knn-driver.fut
+
+futhark dataset -b -g 1i32 -g 60i64 -g [500000][50]f32 -g [500000][50]f32 > tmpdata
+
+./knn-driver -t /dev/stdout -n < tmpdata >> res.txt
+
+
+This should work (and take a little over 10 seconds). To reproduce the bug: Change the dataset to:
+
+futhark dataset -b -g 1i32 -g 120i64 -g [500000][50]f32 -g [500000][50]f32 > tmpdata
+
+And try to run the program as before with: ./knn-driver -t /dev/stdout -n < tmpdata >> res.txt
+Here k was changed. If you change d but keep k at 60 you should get the same error. E.g. with this as the dataset:
+
+futhark dataset -b -g 1i32 -g 60i64 -g [500000][150]f32 -g [500000][150]f32 > tmpdata
+
+
+The error occurs in this part of the code (knn-driver.fut line 68-82): 
+
+  let supercharging = 
+    ----let ksqr = k**2
+    let (super_knn_inds_seq) =
+      loop (curr_knns_q) = (new_knns_q) for i < k do
+        let k_inds = map (\knn_ind_q -> map (\q -> knn_inds_t[knn_ind_q[i],q]) (iota k)) knn_inds_q
+        let k_points = map (\inds -> map (\ind -> 
+                                        let test_point = map (\k_ind -> test_set[ind, k_ind]) (iota d)
+                                        in (ind, test_point)
+                                        ) inds) k_inds
+                       --map (\inds -> map (\ind -> (ind, test_set[ind])) inds) k_inds
+        in  map2 (\refs ind -> bruteForce queries[ind] curr_knns_q[ind] refs ) k_points (iota n)
+    in super_knn_inds_seq
+
+  let (super_knn_inds, _) =  unzip <| map (\i_knn -> unzip i_knn) supercharging
+  in (super_knn_inds)
+
+I tried running the program without this and it ran without errors.
