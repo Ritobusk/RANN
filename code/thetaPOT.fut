@@ -89,8 +89,8 @@ def pseudoRandomOrthogonalTransformation [n] [d] (m: i64) (t: i32) (points : [n]
     -- (d-1)*(m1+m2) random numbers for Q normalized and then multiplied by 2 pi
     let (_ , rand_numbers_Q)     = unzip <| map (\r -> rng_engine.rand r) rngs_dM1M2 
     let rand_numbers_Q_normalized2pi = map (\num -> (f32.f64 (((f64.u32 num) / (f64.u32 4294967295)) * (2*real.pi) ))) rand_numbers_Q
-    --let rndQ_normalized2d = unflatten rand_numbers_Q_normalized2pi :>[(M1+M2)][(d-1)]f32  --For v.0.22.4 use M1+M2 and (d-1) as parameters to unflatten
-    let rndQ_normalized2d = unflatten (M1+M2) (d-1) rand_numbers_Q_normalized2pi --:>[(M1+M2)][(d-1)]f32  --For v.0.22.4 use M1+M2 and (d-1) as parameters to unflatten
+    let rndQ_normalized2d = unflatten rand_numbers_Q_normalized2pi :>[(M1+M2)][(d-1)]f32  --For v.0.22.4 use M1+M2 and (d-1) as parameters to unflatten
+    --let rndQ_normalized2d = unflatten (M1+M2) (d-1) rand_numbers_Q_normalized2pi --:>[(M1+M2)][(d-1)]f32  --For v.0.22.4 use M1+M2 and (d-1) as parameters to unflatten
 
     in map (\p ->  Theta p  permutations_P rndQ_normalized2d M1 M2) points'
 
@@ -114,8 +114,8 @@ def main [n][d] (Tval: i64) (points : [n][d]f32) = --: [][n][d]f32 =
             -- (d-1)*(m1+m2) random numbers for Q normalized and then multiplied by 2 pi
             let (_ , rand_numbers_Q)     = unzip <| map (\r -> rng_engine.rand r) rngs_dM1M2 
             let rand_numbers_Q_normalized2pi = map (\num -> (f32.f64 (((f64.u32 num) / (f64.u32 4294967295)) * (2*real.pi) ))) rand_numbers_Q
-            --let rndQ_normalized2d = unflatten rand_numbers_Q_normalized2pi :>[(M1+M2)][(d-1)]f32 --For v.0.22.4 use M1+M2 and (d-1) as parameters to unflatten
-            let rndQ_normalized2d = unflatten (M1+M2) (d-1) rand_numbers_Q_normalized2pi --:>[(M1+M2)][(d-1)]f32  --For v.0.22.4 use M1+M2 and (d-1) as parameters to unflatten
+            let rndQ_normalized2d = unflatten rand_numbers_Q_normalized2pi :>[(M1+M2)][(d-1)]f32 --For v.0.22.4 use M1+M2 and (d-1) as parameters to unflatten
+            --let rndQ_normalized2d = unflatten (M1+M2) (d-1) rand_numbers_Q_normalized2pi --:>[(M1+M2)][(d-1)]f32  --For v.0.22.4 use M1+M2 and (d-1) as parameters to unflatten
 
             let r = map (\p ->  Theta p  permutations_P rndQ_normalized2d M1 M2) points'
             let a = map2 (-) points[0] points[1] 
