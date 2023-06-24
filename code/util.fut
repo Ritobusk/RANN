@@ -2,20 +2,6 @@ def log2 x = (loop (y,c) = (x,0i32) while y > 1i32 do (y >> 1, c+1)).1
 
 def iota32 n = (0..1..<i32.i64 n) :> [n]i32
 
-def partition2Ind [n] (cs: [n]bool) : ([n]i32, i32) =
-    let tfs = map (\f -> if f then 1 else 0) cs
-    let isT = scan (+) 0 tfs
-    let ffs = map (\f -> if f then 0 else 1) cs
-    let isF0 = scan (+) 0 ffs
-
-    let i = isT[n-1]
-    let isF = map (+ i) isF0 
-    let inds = map3 (\ c iT iF ->
-                        if c then iT-1 else iF-1
-                    ) cs isT isF
-    in (inds, i)
-
-
 def imap  as f = map f as
 def imap2 as bs f = map2 f as bs
 
@@ -105,8 +91,10 @@ def partition3L2 't [n] [p]
         (shp_flag_arr: [n]i32)                                                                -- [1,0,0,1,0,0,0,1,0,0,0,0]
         (scan_shp: [p]i32)                                                                    --     [0,0,3,3,7,12]
         (shp : [p]i32, flat_arr : [n]t) -- representation of an irregular array of array      -- shp:[0,0,3,0,4,5]
+        (dummy : t)
       : ([n]t, [p]i32) = -- result: the flat array reorganized & splitting point of each segment
 
+  let ffs = map (\f -> if f then 0 else 1) mask                                                   -- [1,0,1,0,1,0,1,0,1,0,1,0]
   let tfs = map (\f -> if f then 1 else 0) mask                                               -- [0,1,0,1,0,1,0,1,0,1,0,1]
   let isT = sgmscan (+) 0 shp_flag_arr tfs                                                    -- [0,1,1,1,1,2,2,1,1,2,2,3]
   let splits = map2 (\s off -> if s == 0 then 0 else isT[off-1]) shp scan_shp :> [p]i32       -- [1,2,3]
@@ -124,7 +112,6 @@ def partition3L2 't [n] [p]
   let isT_segments_last_elem = map2 (\ind s -> if s == 0 then -1 else isT_segments[ind-1]) 
                                                                       scan_shp shp :> [p]i32      -- [-1,-1,1,-1,5,10]   
   let isT_ind = map2 (\off s -> if s == -1 then -1 else off) exc_scan_shp isT_segments_last_elem  -- [-1,-1,0,-1,3,7]
-  let ffs = map (\f -> if f then 0 else 1) mask                                                   -- [1,0,1,0,1,0,1,0,1,0,1,0]
   let isF_segments =
       let ffs_add_Ts       = map2 (\ind t_val -> ffs[ind] + t_val) 
                                             exc_scan_shp isT_segments_last_elem                   -- [0,0,2,2,5,10]
@@ -134,7 +121,7 @@ def partition3L2 't [n] [p]
   let inds = map3 (\c iT iF -> if c    then i64.i32(iT -1)
                                        else i64.i32(iF -1)
                   ) mask isT_segments isF_segments
-  let r =  scatter (replicate n flat_arr[0]) inds flat_arr
+  let r =  scatter (replicate n dummy) inds flat_arr
   in (r, splits) 
 
 

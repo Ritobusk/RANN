@@ -85,7 +85,7 @@ def mkKDtree [m] [d] (height: i32) (q: i64) (m' : i64)
             let mask_arr = map2 (\p_val ind -> p_val < medians_this_lvl[ind - 1]) chosen_column II1
 
             --- Partition to split each node
-            let (indir'', new_splits) = partition3L2 mask_arr shp_flag_arr scan_shp_this_lvl (shp_this_lvl, indir)
+            let (indir'', new_splits) = partition3L2 mask_arr shp_flag_arr scan_shp_this_lvl (shp_this_lvl, indir) (0i32)
 
             --- For the shape I just need to 'weave' the shape with tmp below
             let tmp = map2 (\shp_val T_val -> shp_val - T_val ) shp_this_lvl new_splits
