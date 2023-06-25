@@ -2,7 +2,7 @@ def shiftPoints [n][d]
          (points : [n][d]f32) : [n][d]f32  =
 
      let mass_acc       = replicate (d) 0.0f32
-     let test_points_div = map (\point -> map (p / n) point) points
+     let test_points_div = map (\point -> map (\p -> p / (f32.i64 n)) point) points
      let mass       = reduce (\acc point -> map2 (+) acc point ) mass_acc test_points_div
      --let mass           = map (\i -> i / f32.i64 n) mass_sum
      let shifted_Points = map (\point -> map2 (\pv mv -> pv - mv) point mass) points
@@ -12,9 +12,9 @@ def shiftTandQPoints [n] [m] [d]
          (test_points : [n][d]f32) (query_points : [m][d]f32) : ([n][d]f32, [m][d]f32)  =
 
      let mass_acc        = replicate (d) 0.0f32
-     let test_points_div = map (\point -> map (p / n) point) test_points
-     let mass_sum        = reduce (\acc point -> map2 (+) acc point ) mass_acc test_points
-     let mass            = map (\i -> i / f32.i64 n) mass_sum
+     let test_points_div = map (\point -> map (\p -> p / (f32.i64 n)) point) test_points
+     let mass        = reduce (\acc point -> map2 (+) acc point ) mass_acc test_points_div
+     --let mass            = map (\i -> i / f32.i64 n) mass_sum
      let shifted_test_Points = map (\point -> map2 (\pv mv -> pv - mv) point mass) test_points
      let shifted_query_Points = map (\point -> map2 (\pv mv -> pv - mv) point mass) query_points
      in (shifted_test_Points, shifted_query_Points)
