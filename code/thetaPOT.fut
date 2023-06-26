@@ -70,7 +70,7 @@ let Theta [d] (point :  [d]f32) (permutations : [][]i64) (random_numbers : [][]f
     let Fd_m2_PQ = Fd m2_PQ d2
     in loop acc = Fd_m2_PQ for i < m1 do
             let pointP = calculate_Pj acc permutations[i + m2]
-            in  calculate_Qj pointP random_numbers[i]
+            in  calculate_Qj pointP random_numbers[i + m2]
 
 def pseudoRandomOrthogonalTransformation [n] [d] (m: i64) (t: i32) (points : [n][d]f32) : [n][d]f32 =
     let M1 =  m/m 
